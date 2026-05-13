@@ -66,10 +66,18 @@ function parseLine(line: string, fallbackYear: number): DressEntryInput | null {
     return fromDescription(iso[1], iso[2])
   }
 
+  const trailingSlash = line.match(/^(.+?)\s*[—–-]\s*(\d{1,2})[\/-](\d{1,2})(?:[\/-](\d{2,4}))?$/)
+  if (trailingSlash) {
+    const day = Number(trailingSlash[2])
+    const month = Number(trailingSlash[3]) - 1
+    const year = normalizeYear(trailingSlash[4], fallbackYear)
+    return fromDescription(toDateString(year, month, day), trailingSlash[1])
+  }
+
   const slash = line.match(/^(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?\s*[-:|]\s*(.+)$/)
   if (slash) {
-    const month = Number(slash[1]) - 1
-    const day = Number(slash[2])
+    const day = Number(slash[1])
+    const month = Number(slash[2]) - 1
     const year = normalizeYear(slash[3], fallbackYear)
     return fromDescription(toDateString(year, month, day), slash[4])
   }
