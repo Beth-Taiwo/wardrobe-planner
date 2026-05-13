@@ -12,6 +12,14 @@ interface DressForm {
   imageUrl: string
 }
 
+interface DressSuggestion {
+  entry: DressEntry
+  score: number
+  lastWornDate: string
+  daysSinceWorn: number
+  reasons: string[]
+}
+
 const today = new Date()
 const monthCursor = ref(new Date(Date.UTC(today.getFullYear(), today.getMonth(), 1)))
 const selectedDate = ref(toDateInput(today))
@@ -26,6 +34,9 @@ const searchYear = ref(String(today.getFullYear()))
 const searchResults = ref<DressEntry[]>([])
 const searchLabel = ref('')
 const searching = ref(false)
+const suggestionResults = ref<DressSuggestion[]>([])
+const suggestionLoading = ref(false)
+const suggestionError = ref("")
 const editingEntryId = ref<string | null>(null)
 const keepFormOnDateChange = ref(false)
 const toast = useToast()
@@ -58,6 +69,9 @@ const selectedEntry = computed(() => entriesByDate.value.get(selectedDate.value)
 const calendarDays = computed(() => buildCalendarDays(monthCursor.value))
 
 watch(selectedDate, (date) => {
+  suggestionResults.value = []
+  suggestionError.value = ""
+
   if (keepFormOnDateChange.value) {
     form.date = date
     return
@@ -209,6 +223,45 @@ async function deleteDress() {
   form.notes = ''
   form.imageUrl = ''
   await refresh()
+}
+
+async function suggestDress() {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(form.date)) {
+    return
+  }
+
+  suggestionError.value = ""
+  suggestionLoading.value = true
+
+  try {
+    const result = await $fetch<{ suggestions: DressSuggestion[] }>("/api/suggestions", {
+      query: {
+        date: form.date,
+        windowDays: 60
+      }
+    })
+
+    suggestionResults.value = result.suggestions
+
+    if (result.suggestions[0]) {
+      applySuggestion(result.suggestions[0].entry)
+      toast.add({ title: "Suggested an outfit", color: "green" })
+    } else {
+      suggestionError.value = "No suggestion found outside the 60-day repeat window."
+    }
+  } catch (error: any) {
+    suggestionError.value = error?.statusMessage || error?.data?.statusMessage || "Could not suggest an outfit."
+  } finally {
+    suggestionLoading.value = false
+  }
+}
+
+function applySuggestion(entry: DressEntry) {
+  form.title = entry.title
+  form.color = entry.color || ""
+  form.category = entry.category || "Casual"
+  form.notes = entry.notes || ""
+  form.imageUrl = entry.imageUrl || ""
 }
 
 async function importEntries() {
@@ -408,8 +461,39 @@ function toDateString(year: number, month: number, day: number) {
             </UFormField>
 
             <UFormField label="Dress" name="title" required>
-              <UInput v-model="form.title" placeholder="Blue midi dress with white sandals" />
+              <div class="flex gap-2">
+                <UInput v-model="form.title" placeholder="Blue midi dress with white sandals" class="min-w-0 flex-1" />
+                <UButton type="button" color="white" icon="i-heroicons-sparkles" :loading="suggestionLoading" @click="suggestDress">
+                  Suggest
+                </UButton>
+              </div>
             </UFormField>
+
+            <UAlert
+              v-if="suggestionError"
+              color="amber"
+              variant="soft"
+              icon="i-heroicons-light-bulb"
+              :title="suggestionError"
+            />
+
+            <div v-if="suggestionResults.length" class="space-y-2 rounded-md border border-stone-200 bg-stone-50 p-3">
+              <p class="text-sm font-semibold text-slate-700">
+                Suggestions for {{ form.date }}
+              </p>
+              <button
+                v-for="suggestion in suggestionResults"
+                :key="suggestion.entry.id"
+                type="button"
+                class="w-full rounded-md border border-stone-200 bg-white p-3 text-left transition hover:border-rose-300 hover:bg-rose-50"
+                @click="applySuggestion(suggestion.entry)"
+              >
+                <span class="block text-sm font-semibold text-slate-950">{{ suggestion.entry.title }}</span>
+                <span class="mt-1 block text-xs text-slate-500">
+                  Last worn {{ suggestion.lastWornDate }} · {{ suggestion.reasons.join(" - ") }}
+                </span>
+              </button>
+            </div>
 
             <div class="grid grid-cols-2 gap-3">
               <UFormField label="Color" name="color">
