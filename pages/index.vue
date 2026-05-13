@@ -128,19 +128,10 @@ async function handleFormDateChange() {
     return
   }
 
-  const date = form.date
-  jumpToDate(date)
+  keepFormOnDateChange.value = true
+  jumpToDate(form.date)
   await nextTick()
-
-  const [entry] = await $fetch<DressEntry[]>('/api/dresses', {
-    query: { date }
-  })
-
-  if (entry) {
-    fillFormFromEntry(entry)
-  } else {
-    clearDressFields(date)
-  }
+  keepFormOnDateChange.value = false
 }
 
 async function runSearch(kind: 'date' | 'month' | 'year') {
@@ -308,30 +299,30 @@ function toDateString(year: number, month: number, day: number) {
       </header>
 
       <section class="rounded-lg border border-stone-300 bg-white p-4 shadow-sm">
-        <div class="grid gap-3 lg:grid-cols-[1fr_1fr_160px] lg:items-end">
+        <div class="grid gap-3 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,0.95fr)_minmax(260px,0.75fr)] lg:items-end">
           <UFormField label="Find exact date">
             <div class="flex gap-2">
-              <UInput v-model="searchDate" type="date" class="min-w-0 flex-1" />
-              <UButton color="white" icon="i-heroicons-magnifying-glass" :loading="searching" @click="runSearch('date')">
-                Search
+              <UInput v-model="searchDate" type="date" class="min-w-0 flex-1" @keyup.enter="runSearch('date')" />
+              <UButton color="rose" icon="i-heroicons-magnifying-glass" :loading="searching" @click="runSearch('date')">
+                Search date
               </UButton>
             </div>
           </UFormField>
 
           <UFormField label="Find month">
             <div class="flex gap-2">
-              <UInput v-model="searchMonth" type="month" class="min-w-0 flex-1" />
-              <UButton color="white" icon="i-heroicons-calendar-days" :loading="searching" @click="runSearch('month')">
-                Search
+              <UInput v-model="searchMonth" type="month" class="min-w-0 flex-1" @keyup.enter="runSearch('month')" />
+              <UButton color="rose" icon="i-heroicons-calendar-days" :loading="searching" @click="runSearch('month')">
+                Search month
               </UButton>
             </div>
           </UFormField>
 
           <UFormField label="Find year">
             <div class="flex gap-2">
-              <UInput v-model="searchYear" type="number" min="1900" max="2100" />
-              <UButton color="white" icon="i-heroicons-calendar" :loading="searching" @click="runSearch('year')">
-                Search
+              <UInput v-model="searchYear" type="number" min="1900" max="2100" class="min-w-24 flex-1" @keyup.enter="runSearch('year')" />
+              <UButton color="rose" icon="i-heroicons-calendar" :loading="searching" @click="runSearch('year')">
+                Search year
               </UButton>
             </div>
           </UFormField>
