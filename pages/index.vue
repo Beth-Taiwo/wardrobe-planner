@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { FormSubmitEvent } from '#ui/types'
-import { computed, reactive, ref } from 'vue'
+import { computed, nextTick, reactive, ref } from 'vue'
 import type { DressEntry } from '~/types/dress'
 
 interface DressForm {
@@ -21,6 +21,14 @@ const importYear = ref(today.getFullYear())
 const importOpen = ref(false)
 const importError = ref('')
 const importing = ref(false)
+const searchDate = ref(toDateInput(today))
+const searchMonth = ref(toDateInput(today).slice(0, 7))
+const searchYear = ref(String(today.getFullYear()))
+const searchResults = ref<DressEntry[]>([])
+const searchLabel = ref('')
+const searching = ref(false)
+const editingEntryId = ref<string | null>(null)
+const keepFormOnDateChange = ref(false)
 const toast = useToast()
 
 const monthKey = computed(() => monthCursor.value.toISOString().slice(0, 7))
@@ -52,7 +60,13 @@ const selectedEntry = computed(() => entriesByDate.value.get(selectedDate.value)
 const calendarDays = computed(() => buildCalendarDays(monthCursor.value))
 
 watch(selectedDate, (date) => {
+  if (keepFormOnDateChange.value) {
+    form.date = date
+    return
+  }
+
   const entry = entriesByDate.value.get(date)
+  editingEntryId.value = entry?.id || null
   form.date = date
   form.title = entry?.title || ''
   form.color = entry?.color || ''
@@ -64,7 +78,8 @@ watch(selectedDate, (date) => {
 
 watch(dresses, () => {
   const entry = entriesByDate.value.get(selectedDate.value)
-  if (entry) {
+  if (entry && !keepFormOnDateChange.value) {
+    editingEntryId.value = entry.id
     form.title = entry.title
     form.color = entry.color || ''
     form.category = entry.category || 'Casual'
@@ -80,6 +95,93 @@ function selectDate(date: string) {
   selectedDate.value = date
 }
 
+function jumpToDate(date: string) {
+  const [year, month] = date.split('-').map(Number)
+  monthCursor.value = new Date(Date.UTC(year, month - 1, 1))
+  selectedDate.value = date
+}
+
+function fillFormFromEntry(entry: DressEntry) {
+  editingEntryId.value = entry.id
+  form.date = entry.date
+  form.title = entry.title
+  form.color = entry.color || ''
+  form.category = entry.category || 'Casual'
+  form.weather = entry.weather || ''
+  form.notes = entry.notes || ''
+  form.imageUrl = entry.imageUrl || ''
+}
+
+function clearDressFields(date = form.date) {
+  editingEntryId.value = null
+  form.date = date
+  form.title = ''
+  form.color = ''
+  form.category = 'Casual'
+  form.weather = ''
+  form.notes = ''
+  form.imageUrl = ''
+}
+
+async function handleFormDateChange() {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(form.date)) {
+    return
+  }
+
+  const date = form.date
+  jumpToDate(date)
+  await nextTick()
+
+  const [entry] = await $fetch<DressEntry[]>('/api/dresses', {
+    query: { date }
+  })
+
+  if (entry) {
+    fillFormFromEntry(entry)
+  } else {
+    clearDressFields(date)
+  }
+}
+
+async function runSearch(kind: 'date' | 'month' | 'year') {
+  searching.value = true
+
+  try {
+    const query = kind === 'date'
+      ? { date: searchDate.value }
+      : kind === 'month'
+        ? { month: searchMonth.value }
+        : { year: searchYear.value }
+
+    const results = await $fetch<DressEntry[]>('/api/dresses', { query })
+    searchResults.value = results
+
+    if (kind === 'date') {
+      jumpToDate(searchDate.value)
+      searchLabel.value = results.length
+        ? '1 outfit found for ' + searchDate.value
+        : 'No outfit found for ' + searchDate.value
+    } else if (kind === 'month') {
+      const [year, month] = searchMonth.value.split('-').map(Number)
+      monthCursor.value = new Date(Date.UTC(year, month - 1, 1))
+      selectedDate.value = searchMonth.value + '-01'
+      searchLabel.value = results.length + ' outfit' + (results.length === 1 ? '' : 's') + ' found for ' + searchMonth.value
+    } else {
+      const year = Number(searchYear.value)
+      monthCursor.value = new Date(Date.UTC(year, 0, 1))
+      selectedDate.value = searchYear.value + '-01-01'
+      searchLabel.value = results.length + ' outfit' + (results.length === 1 ? '' : 's') + ' found in ' + searchYear.value
+    }
+  } finally {
+    searching.value = false
+  }
+}
+
+function openSearchResult(entry: DressEntry) {
+  jumpToDate(entry.date)
+  fillFormFromEntry(entry)
+}
+
 function moveMonth(offset: number) {
   monthCursor.value = new Date(Date.UTC(
     monthCursor.value.getUTCFullYear(),
@@ -89,22 +191,33 @@ function moveMonth(offset: number) {
 }
 
 async function saveDress(event: FormSubmitEvent<DressForm>) {
-  await $fetch('/api/dresses', {
+  const saved = await $fetch<DressEntry>('/api/dresses', {
     method: 'POST',
-    body: event.data
+    body: {
+      ...event.data,
+      id: editingEntryId.value
+    }
   })
 
+  keepFormOnDateChange.value = true
+  editingEntryId.value = saved.id
+  selectedDate.value = saved.date
+  fillFormFromEntry(saved)
   toast.add({ title: 'Dress saved', color: 'green' })
   await refresh()
+  await nextTick()
+  keepFormOnDateChange.value = false
 }
 
 async function deleteDress() {
-  if (!selectedEntry.value) {
+  const id = selectedEntry.value?.id || editingEntryId.value
+  if (!id) {
     return
   }
 
-  await $fetch(`/api/dresses/${selectedEntry.value.id}`, { method: 'DELETE' })
+  await $fetch(`/api/dresses/${id}`, { method: 'DELETE' })
   toast.add({ title: 'Dress removed', color: 'gray' })
+  editingEntryId.value = null
   form.title = ''
   form.color = ''
   form.category = 'Casual'
@@ -194,6 +307,61 @@ function toDateString(year: number, month: number, day: number) {
         </div>
       </header>
 
+      <section class="rounded-lg border border-stone-300 bg-white p-4 shadow-sm">
+        <div class="grid gap-3 lg:grid-cols-[1fr_1fr_160px] lg:items-end">
+          <UFormField label="Find exact date">
+            <div class="flex gap-2">
+              <UInput v-model="searchDate" type="date" class="min-w-0 flex-1" />
+              <UButton color="white" icon="i-heroicons-magnifying-glass" :loading="searching" @click="runSearch('date')">
+                Search
+              </UButton>
+            </div>
+          </UFormField>
+
+          <UFormField label="Find month">
+            <div class="flex gap-2">
+              <UInput v-model="searchMonth" type="month" class="min-w-0 flex-1" />
+              <UButton color="white" icon="i-heroicons-calendar-days" :loading="searching" @click="runSearch('month')">
+                Search
+              </UButton>
+            </div>
+          </UFormField>
+
+          <UFormField label="Find year">
+            <div class="flex gap-2">
+              <UInput v-model="searchYear" type="number" min="1900" max="2100" />
+              <UButton color="white" icon="i-heroicons-calendar" :loading="searching" @click="runSearch('year')">
+                Search
+              </UButton>
+            </div>
+          </UFormField>
+        </div>
+
+        <div v-if="searchLabel" class="mt-4 border-t border-stone-200 pt-4">
+          <div class="mb-3 flex items-center justify-between gap-3">
+            <p class="text-sm font-medium text-slate-600">
+              {{ searchLabel }}
+            </p>
+            <UButton v-if="searchResults.length" color="white" size="xs" @click="searchResults = []; searchLabel = ''">
+              Clear
+            </UButton>
+          </div>
+
+          <div v-if="searchResults.length" class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <button
+              v-for="entry in searchResults"
+              :key="entry.id"
+              type="button"
+              class="rounded-md border border-stone-200 bg-stone-50 p-3 text-left transition hover:border-rose-300 hover:bg-rose-50"
+              @click="openSearchResult(entry)"
+            >
+              <span class="block text-xs font-semibold text-rose-700">{{ entry.date }}</span>
+              <span class="mt-1 block text-sm font-medium text-slate-950">{{ entry.title }}</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
       <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <section class="rounded-lg border border-stone-300 bg-white p-4 shadow-sm">
           <div class="mb-4 flex items-center justify-between gap-3">
@@ -252,7 +420,7 @@ function toDateString(year: number, month: number, day: number) {
 
           <UForm :state="form" class="space-y-4" @submit="saveDress">
             <UFormField label="Date" name="date">
-              <UInput v-model="form.date" type="date" @change="selectedDate = form.date" />
+              <UInput v-model="form.date" type="date" @change="handleFormDateChange" />
             </UFormField>
 
             <UFormField label="Dress" name="title" required>
@@ -289,7 +457,7 @@ function toDateString(year: number, month: number, day: number) {
               <UButton type="submit" color="rose" icon="i-heroicons-check">
                 Save
               </UButton>
-              <UButton v-if="selectedEntry" type="button" color="white" icon="i-heroicons-trash" @click="deleteDress">
+              <UButton v-if="selectedEntry || editingEntryId" type="button" color="white" icon="i-heroicons-trash" @click="deleteDress">
                 Delete
               </UButton>
             </div>

@@ -99,6 +99,43 @@ export function upsertDressEntry(entry: {
   return findDressByDate(entry.date)
 }
 
+export function updateDressEntry(id: string, entry: {
+  date: string
+  title: string
+  color?: string | null
+  category?: string | null
+  weather?: string | null
+  notes?: string | null
+  imageUrl?: string | null
+  sourceUrl?: string | null
+}) {
+  db.prepare(`
+    UPDATE dress_entries SET
+      date = @date,
+      title = @title,
+      color = @color,
+      category = @category,
+      weather = @weather,
+      notes = @notes,
+      image_url = @imageUrl,
+      source_url = COALESCE(@sourceUrl, source_url),
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = @id
+  `).run({
+    id,
+    date: entry.date,
+    title: entry.title,
+    color: entry.color ?? null,
+    category: entry.category ?? null,
+    weather: entry.weather ?? null,
+    notes: entry.notes ?? null,
+    imageUrl: entry.imageUrl ?? null,
+    sourceUrl: entry.sourceUrl ?? null
+  })
+
+  return findDressByDate(entry.date)
+}
+
 export function findDressByDate(date: string) {
   const row = db
     .prepare('SELECT * FROM dress_entries WHERE date = ?')
