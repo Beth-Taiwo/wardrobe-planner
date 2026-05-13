@@ -301,7 +301,7 @@ function toDateString(year: number, month: number, day: number) {
     <UModal
       v-model:open="importOpen"
       title="Import from Keep"
-      description="Paste lines like &quot;2026-05-12 - Red dress&quot; or &quot;May 12 - Linen dress&quot;."
+      description="Paste all three Google Keep notes here. Slash dates are read as DD/MM/YYYY, for example 08/12/2020 means 8 December 2020."
     >
       <template #body>
         <div class="space-y-4">
@@ -317,7 +317,7 @@ function toDateString(year: number, month: number, day: number) {
             <UInput v-model="importYear" type="number" />
           </UFormField>
 
-          <UTextarea v-model="importText" :rows="10" placeholder="2026-05-12 - Red dress&#10;May 13 - Black wrap dress" />
+          <UTextarea v-model="importText" :rows="10" placeholder="WFH — 13/05/2025&#10;Blue dress — 08/12/2020&#10;Black wrap dress — 12/05/2026" />
         </div>
       </template>
 
