@@ -66,7 +66,7 @@ function parseLine(line: string, fallbackYear: number): DressEntryInput | null {
     return fromDescription(iso[1], iso[2])
   }
 
-  const trailingSlash = line.match(/^(.+?)\s*[—–-]\s*(\d{1,2})[\/-](\d{1,2})(?:[\/-](\d{2,4}))?$/)
+  const trailingSlash = line.match(new RegExp("^(.+?)\\s*[—–-]+\\s*(\\d{1,2})[\\/-]+(\\d{1,2})(?:[\\/-]?(\\d{2,4}))?(?:\\s*\\([^)]*\\))?$"))
   if (trailingSlash) {
     const day = Number(trailingSlash[2])
     const month = Number(trailingSlash[3]) - 1
@@ -97,9 +97,16 @@ function parseLine(line: string, fallbackYear: number): DressEntryInput | null {
 }
 
 function fromDescription(date: string, description: string): DressEntryInput | null {
+  const title = description.replace(/^\s*\d+\.\s*/, "").replace(/\s+/g, " " ).trim()
+  const normalizedDescription = title.toLowerCase()
+  if (!title || /^(wfh|work from home|remote|remote working|remote work|working remote|leave|sick leave|holiday|out of the office|-+)$/i.test(title)) {
+    return null
+  }
+
+
   const parsed = dressEntrySchema.safeParse({
     date,
-    title: description.trim()
+    title
   })
 
   return parsed.success ? parsed.data : null
