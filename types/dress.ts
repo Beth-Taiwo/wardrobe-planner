@@ -4,7 +4,6 @@ export interface DressEntry {
   title: string
   color: string | null
   category: string | null
-  weather: string | null
   notes: string | null
   imageUrl: string | null
   sourceUrl: string | null

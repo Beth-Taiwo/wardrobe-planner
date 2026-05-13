@@ -15,7 +15,6 @@ db.exec(`
     title TEXT NOT NULL,
     color TEXT,
     category TEXT,
-    weather TEXT,
     notes TEXT,
     image_url TEXT,
     source_url TEXT,
@@ -32,7 +31,6 @@ export interface DressEntryRow {
   title: string
   color: string | null
   category: string | null
-  weather: string | null
   notes: string | null
   image_url: string | null
   source_url: string | null
@@ -47,7 +45,6 @@ export function toDressEntry(row: DressEntryRow) {
     title: row.title,
     color: row.color,
     category: row.category,
-    weather: row.weather,
     notes: row.notes,
     imageUrl: row.image_url,
     sourceUrl: row.source_url,
@@ -61,7 +58,6 @@ export function upsertDressEntry(entry: {
   title: string
   color?: string | null
   category?: string | null
-  weather?: string | null
   notes?: string | null
   imageUrl?: string | null
   sourceUrl?: string | null
@@ -70,16 +66,15 @@ export function upsertDressEntry(entry: {
 
   db.prepare(`
     INSERT INTO dress_entries (
-      id, date, title, color, category, weather, notes, image_url, source_url
+      id, date, title, color, category, notes, image_url, source_url
     )
     VALUES (
-      @id, @date, @title, @color, @category, @weather, @notes, @imageUrl, @sourceUrl
+      @id, @date, @title, @color, @category, @notes, @imageUrl, @sourceUrl
     )
     ON CONFLICT(date) DO UPDATE SET
       title = excluded.title,
       color = excluded.color,
       category = excluded.category,
-      weather = excluded.weather,
       notes = excluded.notes,
       image_url = excluded.image_url,
       source_url = COALESCE(excluded.source_url, dress_entries.source_url),
@@ -90,7 +85,6 @@ export function upsertDressEntry(entry: {
     title: entry.title,
     color: entry.color ?? null,
     category: entry.category ?? null,
-    weather: entry.weather ?? null,
     notes: entry.notes ?? null,
     imageUrl: entry.imageUrl ?? null,
     sourceUrl: entry.sourceUrl ?? null
@@ -104,7 +98,6 @@ export function updateDressEntry(id: string, entry: {
   title: string
   color?: string | null
   category?: string | null
-  weather?: string | null
   notes?: string | null
   imageUrl?: string | null
   sourceUrl?: string | null
@@ -115,7 +108,6 @@ export function updateDressEntry(id: string, entry: {
       title = @title,
       color = @color,
       category = @category,
-      weather = @weather,
       notes = @notes,
       image_url = @imageUrl,
       source_url = COALESCE(@sourceUrl, source_url),
@@ -127,7 +119,6 @@ export function updateDressEntry(id: string, entry: {
     title: entry.title,
     color: entry.color ?? null,
     category: entry.category ?? null,
-    weather: entry.weather ?? null,
     notes: entry.notes ?? null,
     imageUrl: entry.imageUrl ?? null,
     sourceUrl: entry.sourceUrl ?? null

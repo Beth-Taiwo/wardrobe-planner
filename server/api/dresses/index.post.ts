@@ -8,7 +8,6 @@ export default defineEventHandler(async (event) => {
     title: body.title,
     color: cleanOptional(body.color),
     category: cleanOptional(body.category),
-    weather: cleanOptional(body.weather),
     notes: cleanOptional(body.notes),
     imageUrl: cleanOptional(body.imageUrl),
     sourceUrl: cleanOptional(body.sourceUrl)

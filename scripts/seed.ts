@@ -6,7 +6,6 @@ const entries = [
     title: 'Soft linen dress',
     color: 'Sage',
     category: 'Casual',
-    weather: 'Warm',
     notes: 'Swap sandals for loafers if it rains.'
   },
   {
@@ -14,7 +13,6 @@ const entries = [
     title: 'Black wrap dress',
     color: 'Black',
     category: 'Work',
-    weather: 'Mild',
     notes: 'Gold hoops and low heels.'
   }
 ]

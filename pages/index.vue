@@ -8,7 +8,6 @@ interface DressForm {
   title: string
   color: string
   category: string
-  weather: string
   notes: string
   imageUrl: string
 }
@@ -47,7 +46,6 @@ const form = reactive<DressForm>({
   title: '',
   color: '',
   category: 'Casual',
-  weather: '',
   notes: '',
   imageUrl: ''
 })
@@ -71,7 +69,6 @@ watch(selectedDate, (date) => {
   form.title = entry?.title || ''
   form.color = entry?.color || ''
   form.category = entry?.category || 'Casual'
-  form.weather = entry?.weather || ''
   form.notes = entry?.notes || ''
   form.imageUrl = entry?.imageUrl || ''
 })
@@ -83,13 +80,12 @@ watch(dresses, () => {
     form.title = entry.title
     form.color = entry.color || ''
     form.category = entry.category || 'Casual'
-    form.weather = entry.weather || ''
     form.notes = entry.notes || ''
     form.imageUrl = entry.imageUrl || ''
   }
 })
 
-const categoryOptions = ['Casual', 'Work', 'Event', 'Travel', 'Formal', 'Workout']
+const categoryOptions = ['Casual', 'Work', 'Cooperate', 'Traditional', 'Event', 'Travel', 'Formal', 'Workout']
 
 function selectDate(date: string) {
   selectedDate.value = date
@@ -107,7 +103,6 @@ function fillFormFromEntry(entry: DressEntry) {
   form.title = entry.title
   form.color = entry.color || ''
   form.category = entry.category || 'Casual'
-  form.weather = entry.weather || ''
   form.notes = entry.notes || ''
   form.imageUrl = entry.imageUrl || ''
 }
@@ -118,7 +113,6 @@ function clearDressFields(date = form.date) {
   form.title = ''
   form.color = ''
   form.category = 'Casual'
-  form.weather = ''
   form.notes = ''
   form.imageUrl = ''
 }
@@ -212,7 +206,6 @@ async function deleteDress() {
   form.title = ''
   form.color = ''
   form.category = 'Casual'
-  form.weather = ''
   form.notes = ''
   form.imageUrl = ''
   await refresh()
@@ -424,13 +417,9 @@ function toDateString(year: number, month: number, day: number) {
               </UFormField>
 
               <UFormField label="Category" name="category">
-                <USelect v-model="form.category" :options="categoryOptions" />
+                <USelect v-model="form.category" :items="categoryOptions" />
               </UFormField>
             </div>
-
-            <UFormField label="Weather" name="weather">
-              <UInput v-model="form.weather" placeholder="Warm, rainy, breezy" />
-            </UFormField>
 
             <UFormField label="Image URL" name="imageUrl">
               <UInput v-model="form.imageUrl" placeholder="https://..." />

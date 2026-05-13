@@ -5,7 +5,6 @@ export const dressEntrySchema = z.object({
   title: z.string().trim().min(1).max(120),
   color: z.string().trim().max(40).optional().nullable(),
   category: z.string().trim().max(40).optional().nullable(),
-  weather: z.string().trim().max(60).optional().nullable(),
   notes: z.string().trim().max(500).optional().nullable(),
   imageUrl: z.string().trim().url().optional().nullable(),
   sourceUrl: z.string().trim().url().optional().nullable()
