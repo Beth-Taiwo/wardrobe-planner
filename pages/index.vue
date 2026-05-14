@@ -264,6 +264,11 @@ function applySuggestion(entry: DressEntry) {
   form.imageUrl = entry.imageUrl || ""
 }
 
+function clearSuggestions() {
+  suggestionResults.value = []
+  suggestionError.value = ""
+}
+
 async function importEntries() {
   importError.value = ''
   importing.value = true
@@ -478,9 +483,14 @@ function toDateString(year: number, month: number, day: number) {
             />
 
             <div v-if="suggestionResults.length" class="space-y-2 rounded-md border border-stone-200 bg-stone-50 p-3">
-              <p class="text-sm font-semibold text-slate-700">
-                Suggestions for {{ form.date }}
-              </p>
+              <div class="flex items-center justify-between gap-3">
+                <p class="text-sm font-semibold text-slate-700">
+                  Suggestions for {{ form.date }}
+                </p>
+                <UButton type="button" color="white" size="xs" icon="i-heroicons-x-mark" @click="clearSuggestions">
+                  Clear
+                </UButton>
+              </div>
               <button
                 v-for="suggestion in suggestionResults"
                 :key="suggestion.entry.id"
