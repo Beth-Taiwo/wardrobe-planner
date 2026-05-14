@@ -340,9 +340,6 @@ function toDateString(year: number, month: number, day: number) {
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
-          <UButton color="white" icon="i-heroicons-arrow-top-right-on-square" to="https://keep.google.com/u/0/#NOTE/1rxrgh8G769r5fhSDrtLzGs0OQ-buStywyjO3tP2G5ahBi4U30WTJz60ow8d3DP3RE_Wa" target="_blank">
-            Open Keep
-          </UButton>
           <UButton color="rose" icon="i-heroicons-arrow-down-tray" @click="importOpen = true">
             Import
           </UButton>
