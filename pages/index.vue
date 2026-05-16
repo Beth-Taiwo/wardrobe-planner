@@ -671,7 +671,7 @@ function toDateString(year: number, month: number, day: number) {
               :key="day.date || `blank-${index}`"
               type="button"
               :disabled="!day.isCurrentMonth"
-              class="min-h-28 rounded-md border p-2 text-left transition enabled:hover:border-rose-300 enabled:hover:bg-rose-50 disabled:border-transparent disabled:bg-stone-50"
+              class="group relative min-h-28 overflow-visible rounded-md border p-2 text-left transition enabled:hover:border-rose-300 enabled:hover:bg-rose-50 disabled:border-transparent disabled:bg-stone-50"
               :class="[
                 selectedDate === day.date ? 'border-rose-500 ring-2 ring-rose-200' : 'border-stone-200',
                 entriesByDate.has(day.date) ? 'bg-white' : 'bg-stone-50'
@@ -685,6 +685,9 @@ function toDateString(year: number, month: number, day: number) {
                 </span>
                 <span class="mt-1 block truncate text-xs text-slate-500">
                   {{ entriesByDate.get(day.date)?.category || 'Planned' }}
+                </span>
+                <span class="pointer-events-none absolute left-2 right-2 top-9 z-20 hidden rounded-md border border-stone-200 bg-white p-2 text-xs font-medium leading-snug text-slate-950 shadow-lg group-hover:block group-focus-visible:block">
+                  {{ entriesByDate.get(day.date)?.title }}
                 </span>
               </template>
             </button>
