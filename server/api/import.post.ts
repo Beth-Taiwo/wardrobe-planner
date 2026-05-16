@@ -1,15 +1,16 @@
-import { db, upsertDressEntry } from '../utils/db'
-import { parseKeepEntries } from '../utils/dress'
+import { db, upsertDressEntry } from "../utils/db"
+import { previewKeepEntries } from "../utils/dress"
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const fallbackYear = Number(body.year) || new Date().getFullYear()
-  const entries = parseKeepEntries(String(body.text || ''), fallbackYear)
+  const preview = previewKeepEntries(String(body.text || ""), fallbackYear)
+  const entries = preview.entries
 
   if (!entries.length) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'No dated dress entries were found.'
+      statusMessage: "No dated dress entries were found."
     })
   }
 
@@ -17,12 +18,19 @@ export default defineEventHandler(async (event) => {
     entries.map((entry) =>
       upsertDressEntry({
         ...entry,
-        sourceUrl: 'https://keep.google.com/u/0/#NOTE/1rxrgh8G769r5fhSDrtLzGs0OQ-buStywyjO3tP2G5ahBi4U30WTJz60ow8d3DP3RE_Wa'
+        sourceUrl: "manual-google-keep-import"
       })
     )
   )
 
   const saved = saveMany()
 
-  return { count: saved.length, entries: saved }
+  return {
+    count: saved.length,
+    skippedCount: preview.skipped.length,
+    invalidCount: preview.invalid.length,
+    entries: saved,
+    skipped: preview.skipped,
+    invalid: preview.invalid
+  }
 })
