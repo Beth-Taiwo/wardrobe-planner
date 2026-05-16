@@ -1,4 +1,5 @@
 import { db, type DressEntryRow } from "../../utils/db"
+import { inferCategory } from "../../utils/dress"
 
 export default defineEventHandler(() => {
   const rows = db.prepare("SELECT * FROM dress_entries WHERE category IS NULL OR TRIM(category) = '' ORDER BY date ASC").all() as DressEntryRow[]
@@ -23,23 +24,3 @@ export default defineEventHandler(() => {
 
   return { updated, changes }
 })
-
-function inferCategory(title: string) {
-  const value = title.toLowerCase()
-  if (/native|boubou|woodin|ankara/.test(value)) {
-    return "Traditional"
-  }
-  if (/cooperate|formal|blazer|jacket/.test(value)) {
-    return "Cooperate"
-  }
-  if (/work|shirt|blouse|trouser|skirt/.test(value)) {
-    return "Work"
-  }
-  if (/gown|dress/.test(value)) {
-    return "Formal"
-  }
-  if (/jeans|polo|round neck|sweat|crop/.test(value)) {
-    return "Casual"
-  }
-  return null
-}

@@ -111,6 +111,31 @@ function parseLine(line: string, fallbackYear: number): { entry?: DressEntryInpu
   return { skipped: true, reason: "No dated outfit on this line" }
 }
 
+export function inferCategory(title: string) {
+  const value = title.toLowerCase()
+
+  if (/native|boubou|bubu|woodin|ankara|kimono/.test(value)) {
+    return "Traditional"
+  }
+
+  if (/cooperate|corporate|formal|blazer|jacket/.test(value)) {
+    return "Cooperate"
+  }
+
+  if (/shirt|blouse|trouser|trousers|skirt/.test(value)) {
+    return "Work"
+  }
+
+  if (/gown|dress/.test(value)) {
+    return "Formal"
+  }
+
+  if (/jeans|jean|jumpsuit|polo|round neck|sweat|crop/.test(value)) {
+    return "Casual"
+  }
+
+  return null
+}
 function fromDescription(date: string | null, description: string): { entry?: DressEntryInput, skipped?: true, invalid?: true, reason: string } {
   if (!date) {
     return { invalid: true, reason: "Invalid date" }
@@ -121,7 +146,7 @@ function fromDescription(date: string | null, description: string): { entry?: Dr
     return { skipped: true, reason: "Non-outfit day" }
   }
 
-  const parsed = dressEntrySchema.safeParse({ date, title })
+  const parsed = dressEntrySchema.safeParse({ date, title, category: inferCategory(title) })
   return parsed.success
     ? { entry: parsed.data, reason: "Imported" }
     : { invalid: true, reason: parsed.error.issues[0]?.message || "Invalid entry" }
