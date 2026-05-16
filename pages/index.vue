@@ -20,6 +20,25 @@ interface DressSuggestion {
   reasons: string[]
 }
 
+interface OutfitStats {
+  totalEntries: number
+  uniqueOutfits: number
+  wornThisYear: number
+  uncategorized: number
+  mostWorn: Array<{ title: string, count: number, lastWorn: string }>
+  categories: Array<{ category: string, count: number }>
+  notWornThisYear: Array<{ title: string, count: number, lastWorn: string }>
+}
+
+interface ImportPreviewResult {
+  count: number
+  skippedCount: number
+  invalidCount: number
+  entries: DressForm[]
+  skipped: Array<{ line: string, reason: string }>
+  invalid: Array<{ line: string, reason: string }>
+}
+
 const today = new Date()
 const monthCursor = ref(new Date(Date.UTC(today.getFullYear(), today.getMonth(), 1)))
 const selectedDate = ref(toDateInput(today))
@@ -31,12 +50,23 @@ const importing = ref(false)
 const searchDate = ref(toDateInput(today))
 const searchMonth = ref(toDateInput(today).slice(0, 7))
 const searchYear = ref(String(today.getFullYear()))
+const searchText = ref("")
+const searchCategory = ref("")
 const searchResults = ref<DressEntry[]>([])
 const searchLabel = ref('')
 const searching = ref(false)
 const suggestionResults = ref<DressSuggestion[]>([])
 const suggestionLoading = ref(false)
 const suggestionError = ref("")
+const suggestionWindowDays = ref(60)
+const saveLoading = ref(false)
+const saveError = ref("")
+const deleteLoading = ref(false)
+const historyLoading = ref(false)
+const historyResult = ref<{ title: string, count: number, entries: DressEntry[] } | null>(null)
+const importPreview = ref<ImportPreviewResult | null>(null)
+const importPreviewLoading = ref(false)
+const normalizingCategories = ref(false)
 const editingEntryId = ref<string | null>(null)
 const keepFormOnDateChange = ref(false)
 const toast = useToast()
@@ -46,10 +76,22 @@ const monthLabel = computed(() =>
   new Intl.DateTimeFormat('en', { month: 'long', year: 'numeric' }).format(monthCursor.value)
 )
 
-const { data: dresses, pending, refresh } = await useFetch<DressEntry[]>('/api/dresses', {
+const { data: dresses, pending, refresh } = await useFetch<DressEntry[]>("/api/dresses", {
   query: { month: monthKey },
   watch: [monthKey],
   default: () => []
+})
+
+const { data: stats, refresh: refreshStats } = await useFetch<OutfitStats>("/api/stats", {
+  default: () => ({
+    totalEntries: 0,
+    uniqueOutfits: 0,
+    wornThisYear: 0,
+    uncategorized: 0,
+    mostWorn: [],
+    categories: [],
+    notWornThisYear: []
+  })
 })
 
 const form = reactive<DressForm>({
@@ -99,7 +141,9 @@ watch(dresses, () => {
   }
 })
 
-const categoryOptions = ['Casual', 'Work', 'Cooperate', 'Traditional', 'Event', 'Travel', 'Formal', 'Workout']
+const categoryOptions = ["Casual", "Work", "Cooperate", "Traditional", "Event", "Travel", "Formal", "Workout"]
+const suggestionWindowOptions = [30, 60, 90, 120]
+const categorySearchOptions = computed(() => ["All categories", ...categoryOptions])
 
 function selectDate(date: string) {
   selectedDate.value = date
@@ -142,38 +186,53 @@ async function handleFormDateChange() {
   keepFormOnDateChange.value = false
 }
 
-async function runSearch(kind: 'date' | 'month' | 'year') {
+async function runSearch(kind: "date" | "month" | "year" | "text" | "category") {
   searching.value = true
 
   try {
-    const query = kind === 'date'
-      ? { date: searchDate.value }
-      : kind === 'month'
-        ? { month: searchMonth.value }
-        : { year: searchYear.value }
+    const query: Record<string, string> = {}
 
-    const results = await $fetch<DressEntry[]>('/api/dresses', { query })
+    if (kind === "date") {
+      query.date = searchDate.value
+    } else if (kind === "month") {
+      query.month = searchMonth.value
+    } else if (kind === "year") {
+      query.year = searchYear.value
+    } else if (kind === "text") {
+      query.q = searchText.value
+    } else if (kind === "category" && searchCategory.value && searchCategory.value !== "All categories") {
+      query.category = searchCategory.value
+    }
+
+    const results = await $fetch<DressEntry[]>("/api/dresses", { query })
     searchResults.value = results
 
-    if (kind === 'date') {
+    if (kind === "date") {
       jumpToDate(searchDate.value)
-      searchLabel.value = results.length
-        ? '1 outfit found for ' + searchDate.value
-        : 'No outfit found for ' + searchDate.value
-    } else if (kind === 'month') {
-      const [year, month] = searchMonth.value.split('-').map(Number)
+      searchLabel.value = results.length ? "1 outfit found for " + searchDate.value : "No outfit found for " + searchDate.value
+    } else if (kind === "month") {
+      const [year, month] = searchMonth.value.split("-").map(Number)
       monthCursor.value = new Date(Date.UTC(year, month - 1, 1))
-      selectedDate.value = searchMonth.value + '-01'
-      searchLabel.value = results.length + ' outfit' + (results.length === 1 ? '' : 's') + ' found for ' + searchMonth.value
-    } else {
+      selectedDate.value = searchMonth.value + "-01"
+      searchLabel.value = results.length + " outfit" + (results.length === 1 ? "" : "s") + " found for " + searchMonth.value
+    } else if (kind === "year") {
       const year = Number(searchYear.value)
       monthCursor.value = new Date(Date.UTC(year, 0, 1))
-      selectedDate.value = searchYear.value + '-01-01'
-      searchLabel.value = results.length + ' outfit' + (results.length === 1 ? '' : 's') + ' found in ' + searchYear.value
+      selectedDate.value = searchYear.value + "-01-01"
+      searchLabel.value = results.length + " outfit" + (results.length === 1 ? "" : "s") + " found in " + searchYear.value
+    } else if (kind === "text") {
+      searchLabel.value = results.length + " outfit" + (results.length === 1 ? "" : "s") + " matching " + searchText.value
+    } else {
+      searchLabel.value = results.length + " outfit" + (results.length === 1 ? "" : "s") + " in " + searchCategory.value
     }
   } finally {
     searching.value = false
   }
+}
+
+function clearSearch() {
+  searchResults.value = []
+  searchLabel.value = ""
 }
 
 function openSearchResult(entry: DressEntry) {
@@ -190,22 +249,32 @@ function moveMonth(offset: number) {
 }
 
 async function saveDress(event: FormSubmitEvent<DressForm>) {
-  const saved = await $fetch<DressEntry>('/api/dresses', {
-    method: 'POST',
-    body: {
-      ...event.data,
-      id: editingEntryId.value
-    }
-  })
+  saveError.value = ""
+  saveLoading.value = true
 
-  keepFormOnDateChange.value = true
-  editingEntryId.value = saved.id
-  selectedDate.value = saved.date
-  fillFormFromEntry(saved)
-  toast.add({ title: 'Dress saved', color: 'green' })
-  await refresh()
-  await nextTick()
-  keepFormOnDateChange.value = false
+  try {
+    const saved = await $fetch<DressEntry>("/api/dresses", {
+      method: "POST",
+      body: {
+        ...event.data,
+        id: editingEntryId.value
+      }
+    })
+
+    keepFormOnDateChange.value = true
+    editingEntryId.value = saved.id
+    selectedDate.value = saved.date
+    fillFormFromEntry(saved)
+    toast.add({ title: "Dress saved", color: "green" })
+    await refresh()
+    await refreshStats()
+    await nextTick()
+    keepFormOnDateChange.value = false
+  } catch (error: any) {
+    saveError.value = error?.statusMessage || error?.data?.statusMessage || "Could not save this outfit."
+  } finally {
+    saveLoading.value = false
+  }
 }
 
 async function deleteDress() {
@@ -214,15 +283,21 @@ async function deleteDress() {
     return
   }
 
-  await $fetch(`/api/dresses/${id}`, { method: 'DELETE' })
-  toast.add({ title: 'Dress removed', color: 'gray' })
-  editingEntryId.value = null
-  form.title = ''
-  form.color = ''
-  form.category = 'Casual'
-  form.notes = ''
-  form.imageUrl = ''
-  await refresh()
+  deleteLoading.value = true
+  try {
+    await $fetch("/api/dresses/" + id, { method: "DELETE" })
+    toast.add({ title: "Dress removed", color: "gray" })
+    editingEntryId.value = null
+    form.title = ""
+    form.color = ""
+    form.category = "Casual"
+    form.notes = ""
+    form.imageUrl = ""
+    await refresh()
+    await refreshStats()
+  } finally {
+    deleteLoading.value = false
+  }
 }
 
 async function suggestDress() {
@@ -237,7 +312,7 @@ async function suggestDress() {
     const result = await $fetch<{ suggestions: DressSuggestion[] }>("/api/suggestions", {
       query: {
         date: form.date,
-        windowDays: 60
+        windowDays: suggestionWindowDays.value
       }
     })
 
@@ -247,7 +322,7 @@ async function suggestDress() {
       applySuggestion(result.suggestions[0].entry)
       toast.add({ title: "Suggested an outfit", color: "green" })
     } else {
-      suggestionError.value = "No suggestion found outside the 60-day repeat window."
+      suggestionError.value = "No suggestion found outside the selected repeat window."
     }
   } catch (error: any) {
     suggestionError.value = error?.statusMessage || error?.data?.statusMessage || "Could not suggest an outfit."
@@ -269,6 +344,57 @@ function clearSuggestions() {
   suggestionError.value = ""
 }
 
+async function loadOutfitHistory() {
+  if (!form.title.trim()) {
+    return
+  }
+
+  historyLoading.value = true
+  try {
+    historyResult.value = await $fetch<{ title: string, count: number, entries: DressEntry[] }>("/api/outfits/history", {
+      query: { title: form.title }
+    })
+  } finally {
+    historyLoading.value = false
+  }
+}
+
+async function normalizeCategories() {
+  normalizingCategories.value = true
+  try {
+    const result = await $fetch<{ updated: number }>("/api/categories/normalize", { method: "POST" })
+    toast.add({ title: "Updated " + result.updated + " categories", color: "green" })
+    await refresh()
+    await refreshStats()
+  } finally {
+    normalizingCategories.value = false
+  }
+}
+
+async function previewImportEntries() {
+  importError.value = ""
+  importPreviewLoading.value = true
+
+  try {
+    importPreview.value = await $fetch<ImportPreviewResult>("/api/import/preview", {
+      method: "POST",
+      body: {
+        text: importText.value,
+        year: importYear.value
+      }
+    })
+  } catch (error: any) {
+    importError.value = error?.statusMessage || error?.data?.statusMessage || "Could not preview these entries."
+  } finally {
+    importPreviewLoading.value = false
+  }
+}
+
+function clearImportPreview() {
+  importPreview.value = null
+  importError.value = ""
+}
+
 async function importEntries() {
   importError.value = ''
   importing.value = true
@@ -282,10 +408,12 @@ async function importEntries() {
       }
     })
 
-    toast.add({ title: `Imported ${result.count} entries`, color: 'green' })
+    toast.add({ title: "Imported " + result.count + " entries", color: "green" })
     importOpen.value = false
-    importText.value = ''
+    importText.value = ""
+    importPreview.value = null
     await refresh()
+    await refreshStats()
   } catch (error: any) {
     importError.value = error?.statusMessage || error?.data?.statusMessage || 'Could not import these entries.'
   } finally {
@@ -374,6 +502,24 @@ function toDateString(year: number, month: number, day: number) {
               </UButton>
             </div>
           </UFormField>
+
+          <UFormField label="Find outfit">
+            <div class="flex gap-2">
+              <UInput v-model="searchText" placeholder="blue gown" class="min-w-0 flex-1" @keyup.enter="runSearch('text')" />
+              <UButton color="rose" icon="i-heroicons-magnifying-glass" :loading="searching" :disabled="!searchText.trim()" @click="runSearch('text')">
+                Search outfit
+              </UButton>
+            </div>
+          </UFormField>
+
+          <UFormField label="Find category">
+            <div class="flex gap-2">
+              <USelect v-model="searchCategory" :items="categorySearchOptions" class="min-w-0 flex-1" />
+              <UButton color="rose" icon="i-heroicons-tag" :loading="searching" :disabled="!searchCategory || searchCategory === 'All categories'" @click="runSearch('category')">
+                Search category
+              </UButton>
+            </div>
+          </UFormField>
         </div>
 
         <div v-if="searchLabel" class="mt-4 border-t border-stone-200 pt-4">
@@ -381,7 +527,7 @@ function toDateString(year: number, month: number, day: number) {
             <p class="text-sm font-medium text-slate-600">
               {{ searchLabel }}
             </p>
-            <UButton v-if="searchResults.length" color="white" size="xs" @click="searchResults = []; searchLabel = ''">
+            <UButton v-if="searchResults.length" color="white" size="xs" @click="clearSearch">
               Clear
             </UButton>
           </div>
@@ -397,6 +543,104 @@ function toDateString(year: number, month: number, day: number) {
               <span class="block text-xs font-semibold text-rose-700">{{ entry.date }}</span>
               <span class="mt-1 block text-sm font-medium text-slate-950">{{ entry.title }}</span>
             </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="overflow-hidden rounded-lg border border-stone-300 bg-white shadow-sm">
+        <div class="border-b border-stone-200 bg-stone-50 px-4 py-4">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wide text-rose-700">Insights</p>
+              <h2 class="mt-1 text-xl font-semibold text-slate-950">Wardrobe stats</h2>
+            </div>
+            <UButton color="white" size="xs" icon="i-heroicons-sparkles" :loading="normalizingCategories" :disabled="!stats?.uncategorized" @click="normalizeCategories">
+              Classify uncategorized
+            </UButton>
+          </div>
+        </div>
+
+        <div class="p-4">
+          <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="rounded-md border border-rose-200 bg-rose-50 p-4">
+              <div class="flex items-center justify-between gap-3">
+                <p class="text-xs font-semibold uppercase tracking-wide text-rose-700">Entries</p>
+                <span class="i-heroicons-calendar-days h-5 w-5 text-rose-700" />
+              </div>
+              <p class="mt-3 text-3xl font-semibold text-slate-950">{{ stats?.totalEntries || 0 }}</p>
+              <p class="mt-1 text-sm text-slate-600">Saved outfit days</p>
+            </div>
+
+            <div class="rounded-md border border-emerald-200 bg-emerald-50 p-4">
+              <div class="flex items-center justify-between gap-3">
+                <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Unique outfits</p>
+                <span class="i-heroicons-swatch h-5 w-5 text-emerald-700" />
+              </div>
+              <p class="mt-3 text-3xl font-semibold text-slate-950">{{ stats?.uniqueOutfits || 0 }}</p>
+              <p class="mt-1 text-sm text-slate-600">Distinct outfit names</p>
+            </div>
+
+            <div class="rounded-md border border-sky-200 bg-sky-50 p-4">
+              <div class="flex items-center justify-between gap-3">
+                <p class="text-xs font-semibold uppercase tracking-wide text-sky-700">This year</p>
+                <span class="i-heroicons-chart-bar h-5 w-5 text-sky-700" />
+              </div>
+              <p class="mt-3 text-3xl font-semibold text-slate-950">{{ stats?.wornThisYear || 0 }}</p>
+              <p class="mt-1 text-sm text-slate-600">Entries in the current year</p>
+            </div>
+
+            <div class="rounded-md border border-amber-200 bg-amber-50 p-4">
+              <div class="flex items-center justify-between gap-3">
+                <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Uncategorized</p>
+                <span class="i-heroicons-tag h-5 w-5 text-amber-700" />
+              </div>
+              <p class="mt-3 text-3xl font-semibold text-slate-950">{{ stats?.uncategorized || 0 }}</p>
+              <p class="mt-1 text-sm text-slate-600">Ready for cleanup</p>
+            </div>
+          </div>
+
+          <div class="mt-4 grid gap-4 lg:grid-cols-3">
+            <div class="rounded-md border border-stone-200 p-4">
+              <div class="mb-3 flex items-center gap-2">
+                <span class="i-heroicons-arrow-trending-up h-5 w-5 text-rose-700" />
+                <p class="text-sm font-semibold text-slate-800">Most worn</p>
+              </div>
+              <div class="space-y-2">
+                <div v-for="item in stats?.mostWorn" :key="item.title" class="rounded-md bg-stone-50 px-3 py-2">
+                  <div class="flex items-start justify-between gap-3">
+                    <p class="text-sm font-medium text-slate-950">{{ item.title }}</p>
+                    <UBadge color="rose" variant="soft">{{ item.count }}</UBadge>
+                  </div>
+                  <p class="mt-1 text-xs text-slate-500">Last worn {{ item.lastWorn }}</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="rounded-md border border-stone-200 p-4">
+              <div class="mb-3 flex items-center gap-2">
+                <span class="i-heroicons-squares-2x2 h-5 w-5 text-rose-700" />
+                <p class="text-sm font-semibold text-slate-800">Categories</p>
+              </div>
+              <div class="space-y-2">
+                <div v-for="item in stats?.categories" :key="item.category" class="flex items-center justify-between rounded-md bg-stone-50 px-3 py-2">
+                  <span class="text-sm font-medium text-slate-700">{{ item.category }}</span>
+                  <UBadge color="gray" variant="soft">{{ item.count }}</UBadge>
+                </div>
+              </div>
+            </div>
+
+            <div class="rounded-md border border-stone-200 p-4">
+              <div class="mb-3 flex items-center gap-2">
+                <span class="i-heroicons-archive-box h-5 w-5 text-rose-700" />
+                <p class="text-sm font-semibold text-slate-800">Not worn this year</p>
+              </div>
+              <div class="space-y-2">
+                <div v-for="item in stats?.notWornThisYear" :key="item.title" class="rounded-md bg-stone-50 px-3 py-2">
+                  <p class="text-sm font-medium text-slate-950">{{ item.title }}</p>
+                  <p class="mt-1 text-xs text-slate-500">Last worn {{ item.lastWorn }}</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -465,6 +709,11 @@ function toDateString(year: number, month: number, day: number) {
             <UFormField label="Dress" name="title" required>
               <div class="flex gap-2">
                 <UInput v-model="form.title" placeholder="Blue midi dress with white sandals" class="min-w-0 flex-1" />
+                <select v-model.number="suggestionWindowDays" class="w-28 rounded-md border border-stone-300 bg-white px-2 text-sm text-slate-700">
+                  <option v-for="days in suggestionWindowOptions" :key="days" :value="days">
+                    {{ days }} days
+                  </option>
+                </select>
                 <UButton type="button" color="white" icon="i-heroicons-sparkles" :loading="suggestionLoading" @click="suggestDress">
                   Suggest
                 </UButton>
@@ -502,6 +751,32 @@ function toDateString(year: number, month: number, day: number) {
               </button>
             </div>
 
+            <div class="flex gap-2">
+              <UButton type="button" color="white" icon="i-heroicons-clock" :loading="historyLoading" :disabled="!form.title.trim()" @click="loadOutfitHistory">
+                Outfit history
+              </UButton>
+              <UButton v-if="historyResult" type="button" color="white" icon="i-heroicons-x-mark" @click="historyResult = null">
+                Clear history
+              </UButton>
+            </div>
+
+            <div v-if="historyResult" class="rounded-md border border-stone-200 bg-stone-50 p-3">
+              <p class="text-sm font-semibold text-slate-700">
+                {{ historyResult.title }} worn {{ historyResult.count }} time{{ historyResult.count === 1 ? "" : "s" }}
+              </p>
+              <div class="mt-2 max-h-40 space-y-1 overflow-auto text-sm text-slate-600">
+                <button
+                  v-for="entry in historyResult.entries"
+                  :key="entry.id"
+                  type="button"
+                  class="block w-full rounded px-2 py-1 text-left hover:bg-white"
+                  @click="openSearchResult(entry)"
+                >
+                  {{ entry.date }} - {{ entry.category || "Uncategorized" }}
+                </button>
+              </div>
+            </div>
+
             <div class="grid grid-cols-2 gap-3">
               <UFormField label="Color" name="color">
                 <UInput v-model="form.color" placeholder="Blue" />
@@ -524,11 +799,13 @@ function toDateString(year: number, month: number, day: number) {
               <img :src="form.imageUrl" alt="" class="aspect-[4/3] w-full object-cover">
             </div>
 
+            <UAlert v-if="saveError" color="red" variant="soft" icon="i-heroicons-exclamation-triangle" :title="saveError" />
+
             <div class="flex gap-2">
-              <UButton type="submit" color="rose" icon="i-heroicons-check">
+              <UButton type="submit" color="rose" icon="i-heroicons-check" :loading="saveLoading">
                 Save
               </UButton>
-              <UButton v-if="selectedEntry || editingEntryId" type="button" color="white" icon="i-heroicons-trash" @click="deleteDress">
+              <UButton v-if="selectedEntry || editingEntryId" type="button" color="white" icon="i-heroicons-trash" :loading="deleteLoading" @click="deleteDress">
                 Delete
               </UButton>
             </div>
@@ -557,11 +834,34 @@ function toDateString(year: number, month: number, day: number) {
           </UFormField>
 
           <UTextarea v-model="importText" :rows="10" placeholder="WFH — 13/05/2025&#10;Blue dress — 08/12/2020&#10;Black wrap dress — 12/05/2026" />
+
+          <div v-if="importPreview" class="rounded-md border border-stone-200 bg-stone-50 p-3 text-sm">
+            <div class="mb-3 flex items-center justify-between gap-3">
+              <p class="font-semibold text-slate-700">Import preview</p>
+              <UButton color="white" size="xs" icon="i-heroicons-x-mark" @click="clearImportPreview">Clear</UButton>
+            </div>
+            <div class="grid gap-2 sm:grid-cols-3">
+              <UBadge color="green">{{ importPreview.count }} importable</UBadge>
+              <UBadge color="gray">{{ importPreview.skippedCount }} skipped</UBadge>
+              <UBadge color="red">{{ importPreview.invalidCount }} invalid</UBadge>
+            </div>
+            <div v-if="importPreview.entries.length" class="mt-3 max-h-32 overflow-auto">
+              <p v-for="entry in importPreview.entries.slice(0, 8)" :key="entry.date + entry.title" class="text-slate-600">
+                {{ entry.date }} - {{ entry.title }}
+              </p>
+            </div>
+            <div v-if="importPreview.invalid.length" class="mt-3 max-h-24 overflow-auto text-red-700">
+              <p v-for="item in importPreview.invalid.slice(0, 5)" :key="item.line">{{ item.line }} - {{ item.reason }}</p>
+            </div>
+          </div>
         </div>
       </template>
 
       <template #footer>
         <div class="flex justify-end gap-2">
+          <UButton color="white" icon="i-heroicons-eye" :loading="importPreviewLoading" :disabled="!importText.trim()" @click="previewImportEntries">
+            Preview
+          </UButton>
           <UButton color="white" :disabled="importing" @click="importOpen = false">
             Cancel
           </UButton>
