@@ -478,8 +478,8 @@ function toDateString(year: number, month: number, day: number) {
         <div class="grid gap-3 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,0.95fr)_minmax(260px,0.75fr)] lg:items-end">
           <UFormField label="Find exact date">
             <div class="flex gap-2">
-              <UInput v-model="searchDate" type="date" class="min-w-0 flex-1" @keyup.enter="runSearch('date')" />
-              <UButton color="rose" icon="i-heroicons-magnifying-glass" :loading="searching" @click="runSearch('date')">
+              <UInput v-model="searchDate" type="date" class="min-w-0 flex-1" @keyup.enter="runSearch('date')" @blur="runSearch('date')" />
+<UButton color="rose" icon="i-heroicons-magnifying-glass" :loading="searching" @click="runSearch('date')">
                 Search date
               </UButton>
             </div>
@@ -487,8 +487,8 @@ function toDateString(year: number, month: number, day: number) {
 
           <UFormField label="Find month">
             <div class="flex gap-2">
-              <UInput v-model="searchMonth" type="month" class="min-w-0 flex-1" @keyup.enter="runSearch('month')" />
-              <UButton color="rose" icon="i-heroicons-calendar-days" :loading="searching" @click="runSearch('month')">
+              <UInput v-model="searchMonth" type="month" class="min-w-0 flex-1" @keyup.enter="runSearch('month')" @blur="runSearch('month')" />
+<UButton color="rose" icon="i-heroicons-calendar-days" :loading="searching" @click="runSearch('month')">
                 Search month
               </UButton>
             </div>
@@ -496,8 +496,8 @@ function toDateString(year: number, month: number, day: number) {
 
           <UFormField label="Find year">
             <div class="flex gap-2">
-              <UInput v-model="searchYear" type="number" min="1900" max="2100" class="min-w-24 flex-1" @keyup.enter="runSearch('year')" />
-              <UButton color="rose" icon="i-heroicons-calendar" :loading="searching" @click="runSearch('year')">
+              <UInput v-model="searchYear" type="number" min="1900" max="2100" class="min-w-24 flex-1" @keyup.enter="runSearch('year')" @blur="runSearch('year')" />
+<UButton color="rose" icon="i-heroicons-calendar" :loading="searching" @click="runSearch('year')">
                 Search year
               </UButton>
             </div>
@@ -505,8 +505,8 @@ function toDateString(year: number, month: number, day: number) {
 
           <UFormField label="Find outfit">
             <div class="flex gap-2">
-              <UInput v-model="searchText" placeholder="blue gown" class="min-w-0 flex-1" @keyup.enter="runSearch('text')" />
-              <UButton color="rose" icon="i-heroicons-magnifying-glass" :loading="searching" :disabled="!searchText.trim()" @click="runSearch('text')">
+              <UInput v-model="searchText" placeholder="blue gown" class="min-w-0 flex-1" @keyup.enter="runSearch('text')" @blur="searchText.trim() && runSearch('text')" />
+<UButton color="rose" icon="i-heroicons-magnifying-glass" :loading="searching" :disabled="!searchText.trim()" @click="runSearch('text')">
                 Search outfit
               </UButton>
             </div>
@@ -514,8 +514,8 @@ function toDateString(year: number, month: number, day: number) {
 
           <UFormField label="Find category">
             <div class="flex gap-2">
-              <USelect v-model="searchCategory" :items="categorySearchOptions" class="min-w-0 flex-1" />
-              <UButton color="rose" icon="i-heroicons-tag" :loading="searching" :disabled="!searchCategory || searchCategory === 'All categories'" @click="runSearch('category')">
+              <USelect v-model="searchCategory" :items="categorySearchOptions" class="min-w-0 flex-1" @blur="searchCategory && searchCategory !== 'All categories' && runSearch('category')" />
+<UButton color="rose" icon="i-heroicons-tag" :loading="searching" :disabled="!searchCategory || searchCategory === 'All categories'" @click="runSearch('category')">
                 Search category
               </UButton>
             </div>
