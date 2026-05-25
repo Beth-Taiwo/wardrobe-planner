@@ -83,6 +83,7 @@ const normalizingCategories = ref(false)
 const clothingSaveLoading = ref(false)
 const clothingUploadLoading = ref(false)
 const wardrobeViewMode = ref<'grid' | 'list'>('grid')
+const showAddClothesForm = ref(true)
 const clothingError = ref("")
 const editingEntryId = ref<string | null>(null)
 const keepFormOnDateChange = ref(false)
@@ -781,7 +782,7 @@ function toDateString(year: number, month: number, day: number) {
         </div>
       </section>
 
-      <div v-if="activeTab === 'wardrobe'" class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div v-if="activeTab === 'wardrobe'" class="grid gap-6" :class="showAddClothesForm ? 'lg:grid-cols-[minmax(0,1fr)_380px]' : 'lg:grid-cols-1'">
         <section class="rounded-lg border border-stone-300 bg-white p-4 shadow-sm">
           <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -789,6 +790,15 @@ function toDateString(year: number, month: number, day: number) {
               <h2 class="mt-1 text-xl font-semibold text-slate-950">Clothing pieces</h2>
             </div>
             <div class="flex flex-wrap items-center gap-2">
+              <UButton
+                v-if="!showAddClothesForm"
+                type="button"
+                icon="i-heroicons-plus"
+                class="bg-rose-600 text-white hover:bg-rose-700"
+                @click="showAddClothesForm = true"
+              >
+                Add clothes
+              </UButton>
               <div class="flex rounded-md border border-stone-300 bg-white p-1" aria-label="Wardrobe view mode">
                 <button
                   type="button"
@@ -847,10 +857,8 @@ function toDateString(year: number, month: number, day: number) {
                 <span v-else class="flex h-full w-full items-center justify-center px-2 text-center text-xs font-medium text-slate-500">No image</span>
               </div>
               <div class="min-w-0 flex-1">
-                <div class="flex flex-wrap items-center gap-2">
-                  <h3 class="min-w-0 truncate text-sm font-semibold text-slate-950">{{ item.name }}</h3>
-                  <UBadge color="rose" variant="soft">{{ item.label }}</UBadge>
-                </div>
+                <h3 class="min-w-0 truncate text-sm font-semibold text-slate-950">{{ item.name }}</h3>
+                <p class="mt-1 text-xs font-medium text-rose-700">{{ item.label }}</p>
                 <p v-if="item.color" class="mt-1 text-xs text-slate-500">{{ item.color }}</p>
                 <p v-if="item.notes" class="mt-1 line-clamp-1 text-xs text-slate-600">{{ item.notes }}</p>
               </div>
@@ -859,51 +867,59 @@ function toDateString(year: number, month: number, day: number) {
 
           <div v-else class="rounded-md border border-dashed border-stone-300 bg-stone-50 p-6 text-center">
             <p class="text-sm font-medium text-slate-700">No clothing pieces yet</p>
-            <p class="mt-1 text-sm text-slate-500">Add clothes from the panel on the right, then pair them into outfit plans.</p>
+            <p class="mt-1 text-sm text-slate-500">Open the Add clothes form, then pair pieces into outfit plans.</p>
           </div>
         </section>
 
-        <aside class="rounded-lg border border-stone-300 bg-white p-4 shadow-sm">
-          <div class="mb-4 flex items-center gap-2">
-            <UIcon name="i-heroicons-plus-circle" class="h-5 w-5 text-rose-700" />
-            <div>
-              <p class="text-sm font-medium text-slate-500">Wardrobe</p>
-              <h2 class="text-2xl font-semibold text-slate-950">Add clothes</h2>
-            </div>
+        <aside v-if="showAddClothesForm" class="rounded-lg border border-stone-300 bg-white p-4 shadow-sm">
+          <div class="mb-4 flex items-center justify-between gap-3">
+            <h2 class="text-lg font-semibold text-slate-950">Add clothes</h2>
+            <UButton
+              type="button"
+              color="white"
+              square
+              icon="i-heroicons-x-mark"
+              aria-label="Close add clothes form"
+              @click="showAddClothesForm = false"
+            />
           </div>
 
           <UAlert v-if="clothingError" color="red" variant="soft" icon="i-heroicons-exclamation-triangle" :title="clothingError" class="mb-4" />
 
           <div class="space-y-4">
-            <UFormField label="Name">
-              <UInput v-model="clothingForm.name" placeholder="Yellow Ankara top" />
-            </UFormField>
-            <UFormField label="Label">
-              <USelect v-model="clothingForm.label" :items="clothingLabelOptions" />
-            </UFormField>
-            <UFormField label="Color">
-              <UInput v-model="clothingForm.color" placeholder="Yellow" />
-            </UFormField>
-            <UFormField label="Notes">
-              <UTextarea v-model="clothingForm.notes" :rows="3" placeholder="Fabric, fit, occasion" />
-            </UFormField>
-
-            <div class="overflow-hidden rounded-md border border-stone-200 bg-white">
-              <div class="flex aspect-square items-center justify-center bg-stone-100">
+            <label class="block cursor-pointer overflow-hidden rounded-md border border-stone-200 bg-white transition hover:border-rose-300 hover:ring-2 hover:ring-rose-100">
+              <div class="relative flex aspect-square items-center justify-center bg-stone-100">
                 <img v-if="clothingForm.imageUrl" :src="clothingForm.imageUrl" alt="" class="h-full w-full object-cover">
-                <span v-else class="px-3 text-center text-sm font-medium text-slate-500">No image</span>
+                <span v-else class="px-3 text-center text-sm font-medium text-slate-500">
+                  {{ clothingUploadLoading ? "Uploading..." : "Click to add image" }}
+                </span>
+                <span v-if="clothingForm.imageUrl" class="absolute bottom-2 left-2 rounded bg-white/90 px-2 py-1 text-xs font-medium text-slate-700 shadow-sm">
+                  {{ clothingUploadLoading ? "Uploading..." : "Change image" }}
+                </span>
               </div>
+              <input type="file" accept="image/*" class="hidden" :disabled="clothingUploadLoading" @change="uploadClothingImage">
+            </label>
+
+            <UFormField label="Name">
+              <UInput v-model="clothingForm.name" placeholder="Yellow Ankara top" class="w-full" />
+            </UFormField>
+
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <UFormField label="Label">
+                <USelect v-model="clothingForm.label" :items="clothingLabelOptions" class="w-full" />
+              </UFormField>
+              <UFormField label="Color">
+                <UInput v-model="clothingForm.color" placeholder="Yellow" class="w-full" />
+              </UFormField>
             </div>
 
-            <div class="flex flex-wrap gap-2">
-              <label class="inline-flex cursor-pointer items-center gap-2 rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-stone-50">
-                <span>{{ clothingUploadLoading ? "Uploading..." : "Upload image" }}</span>
-                <input type="file" accept="image/*" class="hidden" :disabled="clothingUploadLoading" @change="uploadClothingImage">
-              </label>
-              <UButton type="button" color="rose" icon="i-heroicons-plus" :loading="clothingSaveLoading" :disabled="!clothingForm.name.trim()" @click="createClothingItem(false)">
-                Add clothes
-              </UButton>
-            </div>
+            <UFormField label="Notes">
+              <UTextarea v-model="clothingForm.notes" :rows="3" placeholder="Fabric, fit, occasion" class="w-full" />
+            </UFormField>
+
+            <UButton type="button" icon="i-heroicons-plus" class="w-full justify-center bg-rose-600 text-white hover:bg-rose-700 disabled:bg-rose-300" :loading="clothingSaveLoading" :disabled="!clothingForm.name.trim()" @click="createClothingItem(false)">
+              Add clothes
+            </UButton>
           </div>
         </aside>
       </div>
