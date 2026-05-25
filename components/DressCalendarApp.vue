@@ -963,7 +963,7 @@ function toDateString(year: number, month: number, day: number) {
               {{ selectedDate }}
             </p>
             <h2 class="text-2xl font-semibold">
-              {{ selectedEntry ? 'Edit dress' : 'Plan dress' }}
+              {{ selectedEntry ? 'Edit outfit' : 'Plan outfit' }}
             </h2>
           </div>
 
