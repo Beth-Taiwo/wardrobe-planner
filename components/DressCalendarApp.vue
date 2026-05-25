@@ -48,6 +48,14 @@ interface ImportPreviewResult {
   invalid: Array<{ line: string, reason: string }>
 }
 
+interface DressDeletePreview {
+  id: string
+  date: string
+  title: string
+  category: string
+  imageUrl: string
+}
+
 const today = new Date()
 const monthCursor = ref(new Date(Date.UTC(today.getFullYear(), today.getMonth(), 1)))
 const selectedDate = ref(toDateInput(today))
@@ -75,6 +83,8 @@ const suggestionWindowDays = ref(60)
 const saveLoading = ref(false)
 const saveError = ref("")
 const deleteLoading = ref(false)
+const dressDeleteConfirmOpen = ref(false)
+const dressPendingDelete = ref<DressDeletePreview | null>(null)
 const historyLoading = ref(false)
 const historyResult = ref<{ title: string, count: number, entries: DressEntry[] } | null>(null)
 const importPreview = ref<ImportPreviewResult | null>(null)
@@ -185,6 +195,12 @@ watch(dresses, () => {
 watch(clothingDeleteConfirmOpen, (open) => {
   if (!open && !clothingDeleteLoading.value) {
     clothingItemPendingDelete.value = null
+  }
+})
+
+watch(dressDeleteConfirmOpen, (open) => {
+  if (!open && !deleteLoading.value) {
+    dressPendingDelete.value = null
   }
 })
 
@@ -349,15 +365,31 @@ async function saveDress(event: FormSubmitEvent<DressForm>) {
   }
 }
 
-async function deleteDress() {
+function requestDeleteDress() {
   const id = selectedEntry.value?.id || editingEntryId.value
   if (!id) {
     return
   }
 
+  dressPendingDelete.value = {
+    id,
+    date: form.date,
+    title: form.title || selectedEntry.value?.title || "this outfit",
+    category: form.category || selectedEntry.value?.category || "Uncategorized",
+    imageUrl: form.imageUrl || selectedEntry.value?.imageUrl || ""
+  }
+  dressDeleteConfirmOpen.value = true
+}
+
+async function confirmDeleteDress() {
+  const item = dressPendingDelete.value
+  if (!item) {
+    return
+  }
+
   deleteLoading.value = true
   try {
-    await $fetch("/api/dresses/" + id, { method: "DELETE" })
+    await $fetch("/api/dresses/" + item.id, { method: "DELETE" })
     toast.add({ title: "Dress removed", color: "gray" })
     editingEntryId.value = null
     form.title = ""
@@ -368,6 +400,8 @@ async function deleteDress() {
     form.clothingItemIds = []
     await refresh()
     await refreshStats()
+    dressDeleteConfirmOpen.value = false
+    dressPendingDelete.value = null
   } finally {
     deleteLoading.value = false
   }
@@ -1237,7 +1271,7 @@ function toDateString(year: number, month: number, day: number) {
               <UButton type="submit" color="rose" icon="i-heroicons-check" :loading="saveLoading">
                 Save
               </UButton>
-              <UButton v-if="selectedEntry || editingEntryId" type="button" color="white" icon="i-heroicons-trash" :loading="deleteLoading" @click="deleteDress">
+              <UButton v-if="selectedEntry || editingEntryId" type="button" color="white" icon="i-heroicons-trash" :loading="deleteLoading" @click="requestDeleteDress">
                 Delete
               </UButton>
             </div>
@@ -1310,6 +1344,59 @@ function toDateString(year: number, month: number, day: number) {
     </UModal>
 
     <UModal
+      v-model:open="dressDeleteConfirmOpen"
+      title="Delete outfit"
+      description="Review this outfit before removing it from your calendar."
+    >
+      <template #body>
+        <div class="space-y-4">
+          <div class="overflow-hidden rounded-md border border-stone-200 bg-white">
+            <div v-if="dressPendingDelete?.imageUrl" class="aspect-[4/3] bg-stone-100">
+              <img :src="dressPendingDelete.imageUrl" alt="" class="h-full w-full object-cover">
+            </div>
+            <div class="p-3">
+              <p class="text-sm font-semibold text-slate-950">
+                {{ dressPendingDelete?.title || "This outfit" }}
+              </p>
+              <div class="mt-2 flex flex-wrap items-center gap-2">
+                <UBadge color="gray" variant="soft">{{ dressPendingDelete?.date }}</UBadge>
+                <UBadge color="rose" variant="soft">{{ dressPendingDelete?.category }}</UBadge>
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-md border border-red-200 bg-red-50 p-3">
+            <div class="flex items-start gap-3">
+              <UIcon name="i-heroicons-exclamation-triangle" class="mt-0.5 h-5 w-5 shrink-0 text-red-700" />
+              <div class="min-w-0">
+                <p class="text-sm font-semibold text-red-900">
+                  Delete this outfit?
+                </p>
+                <p class="mt-1 text-sm text-red-800">
+                  This action cannot be undone.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <UButton
+            type="button"
+            icon="i-heroicons-trash"
+            class="bg-red-600 text-white hover:bg-red-700 disabled:bg-red-300"
+            :loading="deleteLoading"
+            @click="confirmDeleteDress"
+          >
+            Delete outfit
+          </UButton>
+        </div>
+      </template>
+    </UModal>
+
+    <UModal
       v-model:open="clothingDeleteConfirmOpen"
       title="Delete clothing piece"
       description="This will remove the piece from your wardrobe and from any saved outfits that use it."
@@ -1334,9 +1421,6 @@ function toDateString(year: number, month: number, day: number) {
 
       <template #footer>
         <div class="flex justify-end gap-2">
-          <UButton color="white" :disabled="clothingDeleteLoading" @click="clothingDeleteConfirmOpen = false">
-            Cancel
-          </UButton>
           <UButton
             type="button"
             icon="i-heroicons-trash"
