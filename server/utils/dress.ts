@@ -7,7 +7,8 @@ export const dressEntrySchema = z.object({
   category: z.string().trim().max(40).optional().nullable(),
   notes: z.string().trim().max(500).optional().nullable(),
   imageUrl: z.string().trim().url().optional().nullable(),
-  sourceUrl: z.string().trim().url().optional().nullable()
+  sourceUrl: z.string().trim().url().optional().nullable(),
+  clothingItemIds: z.array(z.string().trim().min(1)).optional().default([])
 })
 
 export type DressEntryInput = z.infer<typeof dressEntrySchema>

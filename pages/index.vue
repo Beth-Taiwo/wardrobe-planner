@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { FormSubmitEvent } from '#ui/types'
 import { computed, nextTick, reactive, ref } from 'vue'
-import type { DressEntry } from '~/types/dress'
+import type { ClothingItem, DressEntry } from '~/types/dress'
 
 interface DressForm {
   date: string
@@ -10,6 +10,15 @@ interface DressForm {
   category: string
   notes: string
   imageUrl: string
+  clothingItemIds: string[]
+}
+
+interface ClothingForm {
+  name: string
+  label: string
+  color: string
+  imageUrl: string
+  notes: string
 }
 
 interface DressSuggestion {
@@ -45,6 +54,8 @@ const selectedDate = ref(toDateInput(today))
 const importText = ref('')
 const importYear = ref(today.getFullYear())
 const importOpen = ref(false)
+const searchOpen = ref(false)
+const activeTab = ref<'insight' | 'wardrobe' | 'calendar'>('calendar')
 const importError = ref('')
 const importing = ref(false)
 const searchDate = ref(toDateInput(today))
@@ -67,6 +78,9 @@ const historyResult = ref<{ title: string, count: number, entries: DressEntry[] 
 const importPreview = ref<ImportPreviewResult | null>(null)
 const importPreviewLoading = ref(false)
 const normalizingCategories = ref(false)
+const clothingSaveLoading = ref(false)
+const clothingUploadLoading = ref(false)
+const clothingError = ref("")
 const editingEntryId = ref<string | null>(null)
 const keepFormOnDateChange = ref(false)
 const toast = useToast()
@@ -79,6 +93,10 @@ const monthLabel = computed(() =>
 const { data: dresses, pending, refresh } = await useFetch<DressEntry[]>("/api/dresses", {
   query: { month: monthKey },
   watch: [monthKey],
+  default: () => []
+})
+
+const { data: clothingItems, refresh: refreshClothingItems } = await useFetch<ClothingItem[]>("/api/clothes", {
   default: () => []
 })
 
@@ -100,7 +118,16 @@ const form = reactive<DressForm>({
   color: '',
   category: 'Casual',
   notes: '',
-  imageUrl: ''
+  imageUrl: '',
+  clothingItemIds: []
+})
+
+const clothingForm = reactive<ClothingForm>({
+  name: '',
+  label: 'Dress',
+  color: '',
+  imageUrl: '',
+  notes: ''
 })
 
 const entriesByDate = computed(() =>
@@ -108,6 +135,10 @@ const entriesByDate = computed(() =>
 )
 
 const selectedEntry = computed(() => entriesByDate.value.get(selectedDate.value) || null)
+const selectedClothingItems = computed(() => {
+  const selectedIds = new Set(form.clothingItemIds)
+  return (clothingItems.value || []).filter((item) => selectedIds.has(item.id))
+})
 const calendarDays = computed(() => buildCalendarDays(monthCursor.value))
 
 watch(selectedDate, (date) => {
@@ -127,6 +158,7 @@ watch(selectedDate, (date) => {
   form.category = entry?.category || 'Casual'
   form.notes = entry?.notes || ''
   form.imageUrl = entry?.imageUrl || ''
+  form.clothingItemIds = entry?.clothingItems?.map((item) => item.id) || []
 })
 
 watch(dresses, () => {
@@ -138,10 +170,17 @@ watch(dresses, () => {
     form.category = entry.category || 'Casual'
     form.notes = entry.notes || ''
     form.imageUrl = entry.imageUrl || ''
+    form.clothingItemIds = entry.clothingItems?.map((item) => item.id) || []
   }
 })
 
 const categoryOptions = ["Casual", "Work", "Cooperate", "Traditional", "Event", "Travel", "Formal", "Workout"]
+const clothingLabelOptions = ["Blouse", "Shirt", "Skirt", "Dress", "Gown", "Trousers", "Jeans", "Kimono", "Boubou", "Jacket", "Top", "Shoes", "Accessory", "Other"]
+const navTabs = [
+  { key: "insight", label: "Insight" },
+  { key: "wardrobe", label: "Wardrobe" },
+  { key: "calendar", label: "Calendar" }
+] as const
 const suggestionWindowOptions = [30, 60, 90, 120]
 const categorySearchOptions = computed(() => ["All categories", ...categoryOptions])
 
@@ -163,6 +202,7 @@ function fillFormFromEntry(entry: DressEntry) {
   form.category = entry.category || 'Casual'
   form.notes = entry.notes || ''
   form.imageUrl = entry.imageUrl || ''
+  form.clothingItemIds = entry.clothingItems?.map((item) => item.id) || []
 }
 
 function clearDressFields(date = form.date) {
@@ -173,6 +213,7 @@ function clearDressFields(date = form.date) {
   form.category = 'Casual'
   form.notes = ''
   form.imageUrl = ''
+  form.clothingItemIds = []
 }
 
 async function handleFormDateChange() {
@@ -236,6 +277,7 @@ function clearSearch() {
 }
 
 function openSearchResult(entry: DressEntry) {
+  activeTab.value = "calendar"
   jumpToDate(entry.date)
   fillFormFromEntry(entry)
 }
@@ -256,7 +298,7 @@ async function saveDress(event: FormSubmitEvent<DressForm>) {
     const saved = await $fetch<DressEntry>("/api/dresses", {
       method: "POST",
       body: {
-        ...event.data,
+        ...form,
         id: editingEntryId.value
       }
     })
@@ -293,6 +335,7 @@ async function deleteDress() {
     form.category = "Casual"
     form.notes = ""
     form.imageUrl = ""
+    form.clothingItemIds = []
     await refresh()
     await refreshStats()
   } finally {
@@ -337,6 +380,7 @@ function applySuggestion(entry: DressEntry) {
   form.category = entry.category || "Casual"
   form.notes = entry.notes || ""
   form.imageUrl = entry.imageUrl || ""
+  form.clothingItemIds = entry.clothingItems?.map((item) => item.id) || []
 }
 
 function clearSuggestions() {
@@ -370,6 +414,60 @@ async function normalizeCategories() {
     normalizingCategories.value = false
   }
 }
+
+async function createClothingItem(attachToCurrentOutfit = true) {
+  clothingError.value = ""
+  clothingSaveLoading.value = true
+
+  try {
+    const item = await $fetch<ClothingItem>("/api/clothes", {
+      method: "POST",
+      body: clothingForm
+    })
+
+    if (attachToCurrentOutfit) {
+      form.clothingItemIds = [...form.clothingItemIds, item.id]
+    }
+    clothingForm.name = ""
+    clothingForm.label = "Dress"
+    clothingForm.color = ""
+    clothingForm.imageUrl = ""
+    clothingForm.notes = ""
+    toast.add({ title: "Clothing item added", color: "green" })
+    await refreshClothingItems()
+  } catch (error: any) {
+    clothingError.value = error?.statusMessage || error?.data?.statusMessage || "Could not add this clothing item."
+  } finally {
+    clothingSaveLoading.value = false
+  }
+}
+
+async function uploadClothingImage(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) {
+    return
+  }
+
+  clothingError.value = ""
+  clothingUploadLoading.value = true
+
+  try {
+    const body = new FormData()
+    body.append("file", file)
+    const result = await $fetch<{ imageUrl: string }>("/api/clothes/upload", {
+      method: "POST",
+      body
+    })
+    clothingForm.imageUrl = result.imageUrl
+  } catch (error: any) {
+    clothingError.value = error?.statusMessage || error?.data?.statusMessage || "Could not upload this image."
+  } finally {
+    clothingUploadLoading.value = false
+    input.value = ""
+  }
+}
+
 
 async function previewImportEntries() {
   importError.value = ""
@@ -467,19 +565,42 @@ function toDateString(year: number, month: number, day: number) {
           </h1>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2">
+        <nav class="flex flex-wrap items-center gap-2" aria-label="Primary navigation">
+          <div class="flex rounded-md border border-stone-300 bg-white p-1 shadow-sm">
+            <button
+              v-for="tab in navTabs"
+              :key="tab.key"
+              type="button"
+              class="inline-flex cursor-pointer items-center gap-2 rounded px-3 py-2 text-sm font-medium transition"
+              :class="activeTab === tab.key ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-700 hover:bg-stone-100'"
+              @click="activeTab = tab.key"
+            >
+              <span v-if="tab.key === 'insight'" class="i-heroicons-chart-bar h-4 w-4" />
+              <span v-else-if="tab.key === 'wardrobe'" class="i-heroicons-swatch h-4 w-4" />
+              <span v-else class="i-heroicons-calendar-days h-4 w-4" />
+              <span>{{ tab.label }}</span>
+            </button>
+          </div>
+
+          <UButton
+            color="white"
+            icon="i-heroicons-magnifying-glass"
+            :aria-label="searchOpen ? 'Hide search filters' : 'Show search filters'"
+            :variant="searchOpen ? 'solid' : 'outline'"
+            @click="searchOpen = !searchOpen"
+          />
           <UButton color="rose" icon="i-heroicons-arrow-down-tray" @click="importOpen = true">
             Import
           </UButton>
-        </div>
+        </nav>
       </header>
 
-      <section class="rounded-lg border border-stone-300 bg-white p-4 shadow-sm">
+      <section v-if="searchOpen" class="rounded-lg border border-stone-300 bg-white p-4 shadow-sm">
         <div class="grid gap-3 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,0.95fr)_minmax(260px,0.75fr)] lg:items-end">
           <UFormField label="Find exact date">
             <div class="flex gap-2">
               <UInput v-model="searchDate" type="date" class="min-w-0 flex-1" @keyup.enter="runSearch('date')" @blur="runSearch('date')" />
-<UButton color="rose" icon="i-heroicons-magnifying-glass" :loading="searching" @click="runSearch('date')">
+              <UButton color="rose" icon="i-heroicons-magnifying-glass" :loading="searching" @click="runSearch('date')">
                 Search date
               </UButton>
             </div>
@@ -488,7 +609,7 @@ function toDateString(year: number, month: number, day: number) {
           <UFormField label="Find month">
             <div class="flex gap-2">
               <UInput v-model="searchMonth" type="month" class="min-w-0 flex-1" @keyup.enter="runSearch('month')" @blur="runSearch('month')" />
-<UButton color="rose" icon="i-heroicons-calendar-days" :loading="searching" @click="runSearch('month')">
+              <UButton color="rose" icon="i-heroicons-calendar-days" :loading="searching" @click="runSearch('month')">
                 Search month
               </UButton>
             </div>
@@ -497,7 +618,7 @@ function toDateString(year: number, month: number, day: number) {
           <UFormField label="Find year">
             <div class="flex gap-2">
               <UInput v-model="searchYear" type="number" min="1900" max="2100" class="min-w-24 flex-1" @keyup.enter="runSearch('year')" @blur="runSearch('year')" />
-<UButton color="rose" icon="i-heroicons-calendar" :loading="searching" @click="runSearch('year')">
+              <UButton color="rose" icon="i-heroicons-calendar" :loading="searching" @click="runSearch('year')">
                 Search year
               </UButton>
             </div>
@@ -506,7 +627,7 @@ function toDateString(year: number, month: number, day: number) {
           <UFormField label="Find outfit">
             <div class="flex gap-2">
               <UInput v-model="searchText" placeholder="blue gown" class="min-w-0 flex-1" @keyup.enter="runSearch('text')" @blur="searchText.trim() && runSearch('text')" />
-<UButton color="rose" icon="i-heroicons-magnifying-glass" :loading="searching" :disabled="!searchText.trim()" @click="runSearch('text')">
+              <UButton color="rose" icon="i-heroicons-magnifying-glass" :loading="searching" :disabled="!searchText.trim()" @click="runSearch('text')">
                 Search outfit
               </UButton>
             </div>
@@ -515,7 +636,7 @@ function toDateString(year: number, month: number, day: number) {
           <UFormField label="Find category">
             <div class="flex gap-2">
               <USelect v-model="searchCategory" :items="categorySearchOptions" class="min-w-0 flex-1" @blur="searchCategory && searchCategory !== 'All categories' && runSearch('category')" />
-<UButton color="rose" icon="i-heroicons-tag" :loading="searching" :disabled="!searchCategory || searchCategory === 'All categories'" @click="runSearch('category')">
+              <UButton color="rose" icon="i-heroicons-tag" :loading="searching" :disabled="!searchCategory || searchCategory === 'All categories'" @click="runSearch('category')">
                 Search category
               </UButton>
             </div>
@@ -547,7 +668,7 @@ function toDateString(year: number, month: number, day: number) {
         </div>
       </section>
 
-      <section class="overflow-hidden rounded-lg border border-stone-300 bg-white shadow-sm">
+      <section v-if="activeTab === 'insight'" class="overflow-hidden rounded-lg border border-stone-300 bg-white shadow-sm">
         <div class="border-b border-stone-200 bg-stone-50 px-4 py-4">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -645,7 +766,90 @@ function toDateString(year: number, month: number, day: number) {
         </div>
       </section>
 
-      <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <section v-if="activeTab === 'wardrobe'" class="rounded-lg border border-stone-300 bg-white p-4 shadow-sm">
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-rose-700">Wardrobe</p>
+            <h2 class="mt-1 text-xl font-semibold text-slate-950">Clothing pieces</h2>
+          </div>
+          <UBadge color="gray" variant="soft">{{ clothingItems?.length || 0 }} item{{ (clothingItems?.length || 0) === 1 ? '' : 's' }}</UBadge>
+        </div>
+
+        <section class="mb-5 rounded-md border border-stone-200 bg-stone-50 p-4">
+          <div class="mb-3 flex items-center gap-2">
+            <span class="i-heroicons-plus-circle h-5 w-5 text-rose-700" />
+            <h3 class="text-sm font-semibold text-slate-800">Add clothes</h3>
+          </div>
+
+          <UAlert v-if="clothingError" color="red" variant="soft" icon="i-heroicons-exclamation-triangle" :title="clothingError" class="mb-3" />
+
+          <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px]">
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <UFormField label="Name">
+                <UInput v-model="clothingForm.name" placeholder="Yellow Ankara top" />
+              </UFormField>
+              <UFormField label="Label">
+                <USelect v-model="clothingForm.label" :items="clothingLabelOptions" />
+              </UFormField>
+              <UFormField label="Color">
+                <UInput v-model="clothingForm.color" placeholder="Yellow" />
+              </UFormField>
+              <UFormField label="Image URL">
+                <UInput v-model="clothingForm.imageUrl" placeholder="https://..." />
+              </UFormField>
+              <UFormField label="Notes" class="sm:col-span-2">
+                <UTextarea v-model="clothingForm.notes" :rows="3" placeholder="Fabric, fit, occasion" />
+              </UFormField>
+            </div>
+
+            <div class="space-y-3">
+              <div class="overflow-hidden rounded-md border border-stone-200 bg-white">
+                <div class="flex aspect-square items-center justify-center bg-stone-100">
+                  <img v-if="clothingForm.imageUrl" :src="clothingForm.imageUrl" alt="" class="h-full w-full object-cover">
+                  <span v-else class="px-3 text-center text-sm font-medium text-slate-500">No image</span>
+                </div>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <label class="inline-flex cursor-pointer items-center gap-2 rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-stone-50">
+                  <span>{{ clothingUploadLoading ? "Uploading..." : "Upload image" }}</span>
+                  <input type="file" accept="image/*" class="hidden" :disabled="clothingUploadLoading" @change="uploadClothingImage">
+                </label>
+                <UButton type="button" color="rose" icon="i-heroicons-plus" :loading="clothingSaveLoading" :disabled="!clothingForm.name.trim()" @click="createClothingItem(false)">
+                  Add clothes
+                </UButton>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div v-if="clothingItems?.length" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <article
+            v-for="item in clothingItems"
+            :key="item.id"
+            class="overflow-hidden rounded-md border border-stone-200 bg-stone-50"
+          >
+            <div class="flex aspect-square items-center justify-center bg-stone-100">
+              <img v-if="item.imageUrl" :src="item.imageUrl" alt="" class="h-full w-full object-cover">
+              <span v-else class="px-3 text-center text-sm font-medium text-slate-500">No image</span>
+            </div>
+            <div class="p-3">
+              <div class="flex items-start justify-between gap-2">
+                <h3 class="min-w-0 truncate text-sm font-semibold text-slate-950">{{ item.name }}</h3>
+                <UBadge color="rose" variant="soft">{{ item.label }}</UBadge>
+              </div>
+              <p v-if="item.color" class="mt-1 text-xs text-slate-500">{{ item.color }}</p>
+              <p v-if="item.notes" class="mt-2 line-clamp-2 text-xs text-slate-600">{{ item.notes }}</p>
+            </div>
+          </article>
+        </div>
+
+        <div v-else class="rounded-md border border-dashed border-stone-300 bg-stone-50 p-6 text-center">
+          <p class="text-sm font-medium text-slate-700">No clothing pieces yet</p>
+          <p class="mt-1 text-sm text-slate-500">Add pieces from the Calendar outfit form, then pair them into outfit plans.</p>
+        </div>
+      </section>
+
+      <div v-if="activeTab === 'calendar'" class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <section class="rounded-lg border border-stone-300 bg-white p-4 shadow-sm">
           <div class="mb-4 flex items-center justify-between gap-3">
             <UButton color="white" square icon="i-heroicons-chevron-left" aria-label="Previous month" @click="moveMonth(-1)" />
@@ -793,6 +997,72 @@ function toDateString(year: number, month: number, day: number) {
             <UFormField label="Image URL" name="imageUrl">
               <UInput v-model="form.imageUrl" placeholder="https://..." />
             </UFormField>
+
+            <section class="space-y-3 rounded-md border border-stone-200 bg-stone-50 p-3">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <h3 class="text-sm font-semibold text-slate-800">Clothing pieces</h3>
+                  <p class="text-xs text-slate-500">Optional pieces that make up this outfit.</p>
+                </div>
+                <UBadge color="gray" variant="soft">{{ selectedClothingItems.length }} selected</UBadge>
+              </div>
+
+              <div v-if="selectedClothingItems.length" class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                <div
+                  v-for="item in selectedClothingItems"
+                  :key="item.id"
+                  class="overflow-hidden rounded-md border border-stone-200 bg-white"
+                >
+                  <div class="flex aspect-square items-center justify-center bg-stone-100">
+                    <img v-if="item.imageUrl" :src="item.imageUrl" alt="" class="h-full w-full object-cover">
+                    <span v-else class="px-2 text-center text-xs font-medium text-slate-500">No image</span>
+                  </div>
+                  <div class="p-2">
+                    <p class="truncate text-xs font-semibold text-slate-800">{{ item.name }}</p>
+                    <p class="truncate text-xs text-slate-500">{{ item.label }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="clothingItems?.length" class="max-h-36 space-y-1 overflow-auto rounded-md border border-stone-200 bg-white p-2">
+                <label
+                  v-for="item in clothingItems"
+                  :key="item.id"
+                  class="flex cursor-pointer items-center gap-2 rounded px-2 py-1 text-sm hover:bg-stone-50"
+                >
+                  <input v-model="form.clothingItemIds" type="checkbox" :value="item.id" class="h-4 w-4 accent-rose-600">
+                  <span class="min-w-0 flex-1 truncate text-slate-700">{{ item.name }}</span>
+                  <span class="shrink-0 text-xs text-slate-500">{{ item.label }}</span>
+                </label>
+              </div>
+
+              <UAlert v-if="clothingError" color="red" variant="soft" icon="i-heroicons-exclamation-triangle" :title="clothingError" />
+
+              <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <UFormField label="Piece name">
+                  <UInput v-model="clothingForm.name" placeholder="Yellow Ankara top" />
+                </UFormField>
+                <UFormField label="Piece label">
+                  <USelect v-model="clothingForm.label" :items="clothingLabelOptions" />
+                </UFormField>
+                <UFormField label="Piece color">
+                  <UInput v-model="clothingForm.color" placeholder="Yellow" />
+                </UFormField>
+                <UFormField label="Piece image URL">
+                  <UInput v-model="clothingForm.imageUrl" placeholder="https://..." />
+                </UFormField>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-2">
+                <label class="inline-flex cursor-pointer items-center gap-2 rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-stone-50">
+                  <span>{{ clothingUploadLoading ? "Uploading..." : "Upload image" }}</span>
+                  <input type="file" accept="image/*" class="hidden" :disabled="clothingUploadLoading" @change="uploadClothingImage">
+                </label>
+                <UButton type="button" color="white" icon="i-heroicons-plus" :loading="clothingSaveLoading" :disabled="!clothingForm.name.trim()" @click="createClothingItem">
+                  Add piece
+                </UButton>
+              </div>
+            </section>
 
             <UFormField label="Notes" name="notes">
               <UTextarea v-model="form.notes" :rows="4" placeholder="Accessories, shoes, reminders" />

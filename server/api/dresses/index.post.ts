@@ -10,7 +10,8 @@ export default defineEventHandler(async (event) => {
     category: cleanOptional(body.category),
     notes: cleanOptional(body.notes),
     imageUrl: cleanOptional(body.imageUrl),
-    sourceUrl: cleanOptional(body.sourceUrl)
+    sourceUrl: cleanOptional(body.sourceUrl),
+    clothingItemIds: Array.isArray(body.clothingItemIds) ? body.clothingItemIds : []
   })
 
   if (typeof body.id === 'string' && body.id.trim()) {
