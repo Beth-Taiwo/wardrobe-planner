@@ -82,10 +82,14 @@ const importPreviewLoading = ref(false)
 const normalizingCategories = ref(false)
 const clothingSaveLoading = ref(false)
 const clothingUploadLoading = ref(false)
+const clothingDeleteLoading = ref(false)
+const clothingDeleteConfirmOpen = ref(false)
+const clothingItemPendingDelete = ref<ClothingItem | null>(null)
 const wardrobeViewMode = ref<'grid' | 'list'>('grid')
 const showAddClothesForm = ref(true)
 const clothingError = ref("")
 const editingEntryId = ref<string | null>(null)
+const editingClothingItemId = ref<string | null>(null)
 const keepFormOnDateChange = ref(false)
 const toast = useToast()
 
@@ -175,6 +179,12 @@ watch(dresses, () => {
     form.notes = entry.notes || ''
     form.imageUrl = entry.imageUrl || ''
     form.clothingItemIds = entry.clothingItems?.map((item) => item.id) || []
+  }
+})
+
+watch(clothingDeleteConfirmOpen, (open) => {
+  if (!open && !clothingDeleteLoading.value) {
+    clothingItemPendingDelete.value = null
   }
 })
 
@@ -440,26 +450,86 @@ async function createClothingItem(attachToCurrentOutfit = true) {
   clothingSaveLoading.value = true
 
   try {
-    const item = await $fetch<ClothingItem>("/api/clothes", {
-      method: "POST",
+    const isEditing = Boolean(editingClothingItemId.value)
+    const item = await $fetch<ClothingItem>(isEditing ? "/api/clothes/" + editingClothingItemId.value : "/api/clothes", {
+      method: isEditing ? "PUT" : "POST",
       body: clothingForm
     })
 
-    if (attachToCurrentOutfit) {
+    if (!isEditing && attachToCurrentOutfit) {
       form.clothingItemIds = [...form.clothingItemIds, item.id]
     }
-    clothingForm.name = ""
-    clothingForm.label = "Dress"
-    clothingForm.color = ""
-    clothingForm.imageUrl = ""
-    clothingForm.notes = ""
-    toast.add({ title: "Clothing item added", color: "green" })
+    clearClothingForm()
+    toast.add({ title: isEditing ? "Clothing item updated" : "Clothing item added", color: "green" })
     await refreshClothingItems()
+    await refresh()
   } catch (error: any) {
-    clothingError.value = error?.statusMessage || error?.data?.statusMessage || "Could not add this clothing item."
+    clothingError.value = error?.statusMessage || error?.data?.statusMessage || "Could not save this clothing item."
   } finally {
     clothingSaveLoading.value = false
   }
+}
+
+function clearClothingForm() {
+  editingClothingItemId.value = null
+  clothingForm.name = ""
+  clothingForm.label = "Dress"
+  clothingForm.color = ""
+  clothingForm.imageUrl = ""
+  clothingForm.notes = ""
+}
+
+function editClothingItem(item: ClothingItem) {
+  clothingError.value = ""
+  editingClothingItemId.value = item.id
+  clothingForm.name = item.name
+  clothingForm.label = item.label
+  clothingForm.color = item.color || ""
+  clothingForm.imageUrl = item.imageUrl || ""
+  clothingForm.notes = item.notes || ""
+  showAddClothesForm.value = true
+}
+
+function requestDeleteClothingItem(item: ClothingItem) {
+  clothingError.value = ""
+  clothingItemPendingDelete.value = item
+  clothingDeleteConfirmOpen.value = true
+}
+
+async function confirmDeleteClothingItem() {
+  const item = clothingItemPendingDelete.value
+  if (!item) {
+    return
+  }
+
+  clothingError.value = ""
+  clothingDeleteLoading.value = true
+
+  try {
+    await $fetch("/api/clothes/" + item.id, { method: "DELETE" })
+    form.clothingItemIds = form.clothingItemIds.filter((id) => id !== item.id)
+    if (editingClothingItemId.value === item.id) {
+      clearClothingForm()
+    }
+    toast.add({ title: "Clothing item deleted", color: "gray" })
+    await refreshClothingItems()
+    await refresh()
+    clothingDeleteConfirmOpen.value = false
+    clothingItemPendingDelete.value = null
+  } catch (error: any) {
+    clothingError.value = error?.statusMessage || error?.data?.statusMessage || "Could not delete this clothing item."
+  } finally {
+    clothingDeleteLoading.value = false
+  }
+}
+
+async function deleteEditingClothingItem() {
+  const item = (clothingItems.value || []).find((clothingItem) => clothingItem.id === editingClothingItemId.value)
+  if (!item) {
+    return
+  }
+
+  requestDeleteClothingItem(item)
 }
 
 async function uploadClothingImage(event: Event) {
@@ -795,7 +865,7 @@ function toDateString(year: number, month: number, day: number) {
                 type="button"
                 icon="i-heroicons-plus"
                 class="bg-rose-600 text-white hover:bg-rose-700"
-                @click="showAddClothesForm = true"
+                @click="clearClothingForm(); showAddClothesForm = true"
               >
                 Add clothes
               </UButton>
@@ -829,20 +899,22 @@ function toDateString(year: number, month: number, day: number) {
             <article
               v-for="item in clothingItems"
               :key="item.id"
-              class="overflow-hidden rounded-md border border-stone-200 bg-stone-50"
+              class="overflow-hidden rounded-md border border-stone-200 bg-stone-50 transition hover:border-rose-300 hover:ring-2 hover:ring-rose-100"
             >
-              <div class="flex aspect-square items-center justify-center bg-stone-100">
-                <img v-if="item.imageUrl" :src="item.imageUrl" alt="" class="h-full w-full object-cover">
-                <span v-else class="px-3 text-center text-sm font-medium text-slate-500">No image</span>
-              </div>
-              <div class="p-3">
-                <div class="flex items-start justify-between gap-2">
-                  <h3 class="min-w-0 truncate text-sm font-semibold text-slate-950">{{ item.name }}</h3>
-                  <UBadge color="rose" variant="soft">{{ item.label }}</UBadge>
+              <button type="button" class="block w-full cursor-pointer text-left" @click="editClothingItem(item)">
+                <div class="flex aspect-square items-center justify-center bg-stone-100">
+                  <img v-if="item.imageUrl" :src="item.imageUrl" alt="" class="h-full w-full object-cover">
+                  <span v-else class="px-3 text-center text-sm font-medium text-slate-500">No image</span>
                 </div>
-                <p v-if="item.color" class="mt-1 text-xs text-slate-500">{{ item.color }}</p>
-                <p v-if="item.notes" class="mt-2 line-clamp-2 text-xs text-slate-600">{{ item.notes }}</p>
-              </div>
+                <div class="p-3">
+                  <div class="flex items-start justify-between gap-2">
+                    <h3 class="min-w-0 truncate text-sm font-semibold text-slate-950">{{ item.name }}</h3>
+                    <UBadge color="rose" variant="soft">{{ item.label }}</UBadge>
+                  </div>
+                  <p v-if="item.color" class="mt-1 text-xs text-slate-500">{{ item.color }}</p>
+                  <p v-if="item.notes" class="mt-2 line-clamp-2 text-xs text-slate-600">{{ item.notes }}</p>
+                </div>
+              </button>
             </article>
           </div>
 
@@ -850,18 +922,20 @@ function toDateString(year: number, month: number, day: number) {
             <article
               v-for="item in clothingItems"
               :key="item.id"
-              class="flex items-center gap-3 border-b border-stone-200 p-3 last:border-b-0 hover:bg-stone-50"
+              class="border-b border-stone-200 last:border-b-0 hover:bg-stone-50"
             >
-              <div class="h-16 w-16 shrink-0 overflow-hidden rounded-md border border-stone-200 bg-stone-100">
-                <img v-if="item.imageUrl" :src="item.imageUrl" alt="" class="h-full w-full object-cover">
-                <span v-else class="flex h-full w-full items-center justify-center px-2 text-center text-xs font-medium text-slate-500">No image</span>
-              </div>
-              <div class="min-w-0 flex-1">
-                <h3 class="min-w-0 truncate text-sm font-semibold text-slate-950">{{ item.name }}</h3>
-                <p class="mt-1 text-xs font-medium text-rose-700">{{ item.label }}</p>
-                <p v-if="item.color" class="mt-1 text-xs text-slate-500">{{ item.color }}</p>
-                <p v-if="item.notes" class="mt-1 line-clamp-1 text-xs text-slate-600">{{ item.notes }}</p>
-              </div>
+              <button type="button" class="flex w-full cursor-pointer items-center gap-3 p-3 text-left" @click="editClothingItem(item)">
+                <div class="h-16 w-16 shrink-0 overflow-hidden rounded-md border border-stone-200 bg-stone-100">
+                  <img v-if="item.imageUrl" :src="item.imageUrl" alt="" class="h-full w-full object-cover">
+                  <span v-else class="flex h-full w-full items-center justify-center px-2 text-center text-xs font-medium text-slate-500">No image</span>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <h3 class="min-w-0 truncate text-sm font-semibold text-slate-950">{{ item.name }}</h3>
+                  <p class="mt-1 text-xs font-medium text-rose-700">{{ item.label }}</p>
+                  <p v-if="item.color" class="mt-1 text-xs text-slate-500">{{ item.color }}</p>
+                  <p v-if="item.notes" class="mt-1 line-clamp-1 text-xs text-slate-600">{{ item.notes }}</p>
+                </div>
+              </button>
             </article>
           </div>
 
@@ -873,14 +947,14 @@ function toDateString(year: number, month: number, day: number) {
 
         <aside v-if="showAddClothesForm" class="rounded-lg border border-stone-300 bg-white p-4 shadow-sm">
           <div class="mb-4 flex items-center justify-between gap-3">
-            <h2 class="text-lg font-semibold text-slate-950">Add clothes</h2>
+            <h2 class="text-lg font-semibold text-slate-950">{{ editingClothingItemId ? "Edit clothes" : "Add clothes" }}</h2>
             <UButton
               type="button"
               color="white"
               square
               icon="i-heroicons-x-mark"
               aria-label="Close add clothes form"
-              @click="showAddClothesForm = false"
+              @click="showAddClothesForm = false; clearClothingForm()"
             />
           </div>
 
@@ -918,7 +992,17 @@ function toDateString(year: number, month: number, day: number) {
             </UFormField>
 
             <UButton type="button" icon="i-heroicons-plus" class="w-full justify-center bg-rose-600 text-white hover:bg-rose-700 disabled:bg-rose-300" :loading="clothingSaveLoading" :disabled="!clothingForm.name.trim()" @click="createClothingItem(false)">
-              Add clothes
+              {{ editingClothingItemId ? "Save changes" : "Add clothes" }}
+            </UButton>
+            <UButton
+              v-if="editingClothingItemId"
+              type="button"
+              icon="i-heroicons-trash"
+              class="w-full justify-center bg-red-600 text-white hover:bg-red-700 disabled:bg-red-300"
+              :loading="clothingDeleteLoading"
+              @click="deleteEditingClothingItem"
+            >
+              Delete clothes
             </UButton>
           </div>
         </aside>
@@ -1220,6 +1304,47 @@ function toDateString(year: number, month: number, day: number) {
             @click="importEntries"
           >
             Import entries
+          </UButton>
+        </div>
+      </template>
+    </UModal>
+
+    <UModal
+      v-model:open="clothingDeleteConfirmOpen"
+      title="Delete clothing piece"
+      description="This will remove the piece from your wardrobe and from any saved outfits that use it."
+    >
+      <template #body>
+        <div class="space-y-4">
+          <div class="rounded-md border border-red-200 bg-red-50 p-3">
+            <div class="flex items-start gap-3">
+              <UIcon name="i-heroicons-exclamation-triangle" class="mt-0.5 h-5 w-5 shrink-0 text-red-700" />
+              <div class="min-w-0">
+                <p class="text-sm font-semibold text-red-900">
+                  Delete {{ clothingItemPendingDelete?.name || "this clothing piece" }}?
+                </p>
+                <p class="mt-1 text-sm text-red-800">
+                  This action cannot be undone.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <UButton color="white" :disabled="clothingDeleteLoading" @click="clothingDeleteConfirmOpen = false">
+            Cancel
+          </UButton>
+          <UButton
+            type="button"
+            icon="i-heroicons-trash"
+            class="bg-red-600 text-white hover:bg-red-700 disabled:bg-red-300"
+            :loading="clothingDeleteLoading"
+            @click="confirmDeleteClothingItem"
+          >
+            Delete clothes
           </UButton>
         </div>
       </template>

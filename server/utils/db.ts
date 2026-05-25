@@ -231,6 +231,44 @@ export function createClothingItem(item: {
   return toClothingItem(row)
 }
 
+export function updateClothingItem(id: string, item: {
+  name: string
+  label: string
+  color?: string | null
+  imageUrl?: string | null
+  notes?: string | null
+}) {
+  const result = db.prepare(`
+    UPDATE clothing_items
+    SET
+      name = @name,
+      label = @label,
+      color = @color,
+      image_url = @imageUrl,
+      notes = @notes,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = @id
+  `).run({
+    id,
+    name: item.name,
+    label: item.label,
+    color: item.color ?? null,
+    imageUrl: item.imageUrl ?? null,
+    notes: item.notes ?? null
+  })
+
+  if (!result.changes) {
+    return null
+  }
+
+  const row = db.prepare('SELECT * FROM clothing_items WHERE id = ?').get(id) as ClothingItemRow
+  return toClothingItem(row)
+}
+
+export function deleteClothingItem(id: string) {
+  return db.prepare('DELETE FROM clothing_items WHERE id = ?').run(id).changes
+}
+
 function findClothingItemsForDress(dressEntryId: string) {
   const rows = db.prepare(`
     SELECT clothing_items.*
