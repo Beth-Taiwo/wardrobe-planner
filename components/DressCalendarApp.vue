@@ -180,9 +180,9 @@ watch(dresses, () => {
 const categoryOptions = ["Casual", "Work", "Cooperate", "Traditional", "Event", "Travel", "Formal", "Workout"]
 const clothingLabelOptions = ["Blouse", "Shirt", "Skirt", "Dress", "Gown", "Trousers", "Jeans", "Kimono", "Boubou", "Jacket", "Top", "Shoes", "Accessory", "Other"]
 const navTabs = [
-  { key: "insight", label: "Insight", path: "/insight" },
-  { key: "wardrobe", label: "Wardrobe", path: "/wardrobe" },
-  { key: "calendar", label: "Calendar", path: "/calendar" }
+  { key: "insight", label: "Insight", path: "/insight", icon: "i-heroicons-chart-bar" },
+  { key: "wardrobe", label: "Wardrobe", path: "/wardrobe", icon: "i-heroicons-swatch" },
+  { key: "calendar", label: "Calendar", path: "/calendar", icon: "i-heroicons-calendar-days" }
 ] as const
 const suggestionWindowOptions = [30, 60, 90, 120]
 const categorySearchOptions = computed(() => ["All categories", ...categoryOptions])
@@ -592,9 +592,7 @@ function toDateString(year: number, month: number, day: number) {
               :class="activeTab === tab.key ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-700 hover:bg-stone-100'"
               @click="goToTab(tab.key)"
             >
-              <span v-if="tab.key === 'insight'" class="i-heroicons-chart-bar h-4 w-4" />
-              <span v-else-if="tab.key === 'wardrobe'" class="i-heroicons-swatch h-4 w-4" />
-              <span v-else class="i-heroicons-calendar-days h-4 w-4" />
+              <UIcon :name="tab.icon" class="h-4 w-4 shrink-0" />
               <span>{{ tab.label }}</span>
             </button>
           </div>
@@ -703,7 +701,7 @@ function toDateString(year: number, month: number, day: number) {
             <div class="rounded-md border border-rose-200 bg-rose-50 p-4">
               <div class="flex items-center justify-between gap-3">
                 <p class="text-xs font-semibold uppercase tracking-wide text-rose-700">Entries</p>
-                <span class="i-heroicons-calendar-days h-5 w-5 text-rose-700" />
+                <UIcon name="i-heroicons-calendar-days" class="h-5 w-5 text-rose-700" />
               </div>
               <p class="mt-3 text-3xl font-semibold text-slate-950">{{ stats?.totalEntries || 0 }}</p>
               <p class="mt-1 text-sm text-slate-600">Saved outfit days</p>
@@ -712,7 +710,7 @@ function toDateString(year: number, month: number, day: number) {
             <div class="rounded-md border border-emerald-200 bg-emerald-50 p-4">
               <div class="flex items-center justify-between gap-3">
                 <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Unique outfits</p>
-                <span class="i-heroicons-swatch h-5 w-5 text-emerald-700" />
+                <UIcon name="i-heroicons-swatch" class="h-5 w-5 text-emerald-700" />
               </div>
               <p class="mt-3 text-3xl font-semibold text-slate-950">{{ stats?.uniqueOutfits || 0 }}</p>
               <p class="mt-1 text-sm text-slate-600">Distinct outfit names</p>
@@ -721,7 +719,7 @@ function toDateString(year: number, month: number, day: number) {
             <div class="rounded-md border border-sky-200 bg-sky-50 p-4">
               <div class="flex items-center justify-between gap-3">
                 <p class="text-xs font-semibold uppercase tracking-wide text-sky-700">This year</p>
-                <span class="i-heroicons-chart-bar h-5 w-5 text-sky-700" />
+                <UIcon name="i-heroicons-chart-bar" class="h-5 w-5 text-sky-700" />
               </div>
               <p class="mt-3 text-3xl font-semibold text-slate-950">{{ stats?.wornThisYear || 0 }}</p>
               <p class="mt-1 text-sm text-slate-600">Entries in the current year</p>
@@ -730,7 +728,7 @@ function toDateString(year: number, month: number, day: number) {
             <div class="rounded-md border border-amber-200 bg-amber-50 p-4">
               <div class="flex items-center justify-between gap-3">
                 <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Uncategorized</p>
-                <span class="i-heroicons-tag h-5 w-5 text-amber-700" />
+                <UIcon name="i-heroicons-tag" class="h-5 w-5 text-amber-700" />
               </div>
               <p class="mt-3 text-3xl font-semibold text-slate-950">{{ stats?.uncategorized || 0 }}</p>
               <p class="mt-1 text-sm text-slate-600">Ready for cleanup</p>
@@ -740,7 +738,7 @@ function toDateString(year: number, month: number, day: number) {
           <div class="mt-4 grid gap-4 lg:grid-cols-3">
             <div class="rounded-md border border-stone-200 p-4">
               <div class="mb-3 flex items-center gap-2">
-                <span class="i-heroicons-arrow-trending-up h-5 w-5 text-rose-700" />
+                <UIcon name="i-heroicons-arrow-trending-up" class="h-5 w-5 text-rose-700" />
                 <p class="text-sm font-semibold text-slate-800">Most worn</p>
               </div>
               <div class="space-y-2">
@@ -756,7 +754,7 @@ function toDateString(year: number, month: number, day: number) {
 
             <div class="rounded-md border border-stone-200 p-4">
               <div class="mb-3 flex items-center gap-2">
-                <span class="i-heroicons-squares-2x2 h-5 w-5 text-rose-700" />
+                <UIcon name="i-heroicons-squares-2x2" class="h-5 w-5 text-rose-700" />
                 <p class="text-sm font-semibold text-slate-800">Categories</p>
               </div>
               <div class="space-y-2">
@@ -769,7 +767,7 @@ function toDateString(year: number, month: number, day: number) {
 
             <div class="rounded-md border border-stone-200 p-4">
               <div class="mb-3 flex items-center gap-2">
-                <span class="i-heroicons-archive-box h-5 w-5 text-rose-700" />
+                <UIcon name="i-heroicons-archive-box" class="h-5 w-5 text-rose-700" />
                 <p class="text-sm font-semibold text-slate-800">Not worn this year</p>
               </div>
               <div class="space-y-2">
@@ -798,7 +796,7 @@ function toDateString(year: number, month: number, day: number) {
                 aria-label="Show wardrobe as grid"
                 @click="wardrobeViewMode = 'grid'"
               >
-                <span class="i-heroicons-squares-2x2 h-4 w-4" />
+                <UIcon name="i-heroicons-squares-2x2" class="h-4 w-4 shrink-0" />
                 <span>Grid</span>
               </button>
               <button
@@ -808,7 +806,7 @@ function toDateString(year: number, month: number, day: number) {
                 aria-label="Show wardrobe as list"
                 @click="wardrobeViewMode = 'list'"
               >
-                <span class="i-heroicons-list-bullet h-4 w-4" />
+                <UIcon name="i-heroicons-list-bullet" class="h-4 w-4 shrink-0" />
                 <span>List</span>
               </button>
             </div>
@@ -818,7 +816,7 @@ function toDateString(year: number, month: number, day: number) {
 
         <section class="mb-5 rounded-md border border-stone-200 bg-stone-50 p-4">
           <div class="mb-3 flex items-center gap-2">
-            <span class="i-heroicons-plus-circle h-5 w-5 text-rose-700" />
+            <UIcon name="i-heroicons-plus-circle" class="h-5 w-5 text-rose-700" />
             <h3 class="text-sm font-semibold text-slate-800">Add clothes</h3>
           </div>
 
