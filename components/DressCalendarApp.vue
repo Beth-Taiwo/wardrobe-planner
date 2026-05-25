@@ -781,130 +781,132 @@ function toDateString(year: number, month: number, day: number) {
         </div>
       </section>
 
-      <section v-if="activeTab === 'wardrobe'" class="rounded-lg border border-stone-300 bg-white p-4 shadow-sm">
-        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-rose-700">Wardrobe</p>
-            <h2 class="mt-1 text-xl font-semibold text-slate-950">Clothing pieces</h2>
-          </div>
-          <div class="flex flex-wrap items-center gap-2">
-            <div class="flex rounded-md border border-stone-300 bg-white p-1" aria-label="Wardrobe view mode">
-              <button
-                type="button"
-                class="inline-flex cursor-pointer items-center gap-1.5 rounded px-2.5 py-1.5 text-sm font-medium transition"
-                :class="wardrobeViewMode === 'grid' ? 'bg-rose-700 text-white shadow-sm' : 'text-slate-600 hover:bg-stone-100 hover:text-slate-950'"
-                aria-label="Show wardrobe as grid"
-                @click="wardrobeViewMode = 'grid'"
-              >
-                <UIcon name="i-heroicons-squares-2x2" class="h-4 w-4 shrink-0" />
-                <span>Grid</span>
-              </button>
-              <button
-                type="button"
-                class="inline-flex cursor-pointer items-center gap-1.5 rounded px-2.5 py-1.5 text-sm font-medium transition"
-                :class="wardrobeViewMode === 'list' ? 'bg-rose-700 text-white shadow-sm' : 'text-slate-600 hover:bg-stone-100 hover:text-slate-950'"
-                aria-label="Show wardrobe as list"
-                @click="wardrobeViewMode = 'list'"
-              >
-                <UIcon name="i-heroicons-list-bullet" class="h-4 w-4 shrink-0" />
-                <span>List</span>
-              </button>
+      <div v-if="activeTab === 'wardrobe'" class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <section class="rounded-lg border border-stone-300 bg-white p-4 shadow-sm">
+          <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wide text-rose-700">Wardrobe</p>
+              <h2 class="mt-1 text-xl font-semibold text-slate-950">Clothing pieces</h2>
             </div>
-            <UBadge color="gray" variant="soft">{{ clothingItems?.length || 0 }} item{{ (clothingItems?.length || 0) === 1 ? '' : 's' }}</UBadge>
-          </div>
-        </div>
-
-        <section class="mb-5 rounded-md border border-stone-200 bg-stone-50 p-4">
-          <div class="mb-3 flex items-center gap-2">
-            <UIcon name="i-heroicons-plus-circle" class="h-5 w-5 text-rose-700" />
-            <h3 class="text-sm font-semibold text-slate-800">Add clothes</h3>
-          </div>
-
-          <UAlert v-if="clothingError" color="red" variant="soft" icon="i-heroicons-exclamation-triangle" :title="clothingError" class="mb-3" />
-
-          <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px]">
-            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <UFormField label="Name">
-                <UInput v-model="clothingForm.name" placeholder="Yellow Ankara top" />
-              </UFormField>
-              <UFormField label="Label">
-                <USelect v-model="clothingForm.label" :items="clothingLabelOptions" />
-              </UFormField>
-              <UFormField label="Color">
-                <UInput v-model="clothingForm.color" placeholder="Yellow" />
-              </UFormField>
-              <UFormField label="Notes" class="sm:col-span-2">
-                <UTextarea v-model="clothingForm.notes" :rows="3" placeholder="Fabric, fit, occasion" />
-              </UFormField>
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="flex rounded-md border border-stone-300 bg-white p-1" aria-label="Wardrobe view mode">
+                <button
+                  type="button"
+                  class="inline-flex cursor-pointer items-center gap-1.5 rounded px-2.5 py-1.5 text-sm font-medium transition"
+                  :class="wardrobeViewMode === 'grid' ? 'bg-rose-700 text-white shadow-sm' : 'text-slate-600 hover:bg-stone-100 hover:text-slate-950'"
+                  aria-label="Show wardrobe as grid"
+                  @click="wardrobeViewMode = 'grid'"
+                >
+                  <UIcon name="i-heroicons-squares-2x2" class="h-4 w-4 shrink-0" />
+                  <span>Grid</span>
+                </button>
+                <button
+                  type="button"
+                  class="inline-flex cursor-pointer items-center gap-1.5 rounded px-2.5 py-1.5 text-sm font-medium transition"
+                  :class="wardrobeViewMode === 'list' ? 'bg-rose-700 text-white shadow-sm' : 'text-slate-600 hover:bg-stone-100 hover:text-slate-950'"
+                  aria-label="Show wardrobe as list"
+                  @click="wardrobeViewMode = 'list'"
+                >
+                  <UIcon name="i-heroicons-list-bullet" class="h-4 w-4 shrink-0" />
+                  <span>List</span>
+                </button>
+              </div>
+              <UBadge color="gray" variant="soft">{{ clothingItems?.length || 0 }} item{{ (clothingItems?.length || 0) === 1 ? '' : 's' }}</UBadge>
             </div>
+          </div>
 
-            <div class="space-y-3">
-              <div class="overflow-hidden rounded-md border border-stone-200 bg-white">
-                <div class="flex aspect-square items-center justify-center bg-stone-100">
-                  <img v-if="clothingForm.imageUrl" :src="clothingForm.imageUrl" alt="" class="h-full w-full object-cover">
-                  <span v-else class="px-3 text-center text-sm font-medium text-slate-500">No image</span>
+          <div v-if="clothingItems?.length && wardrobeViewMode === 'grid'" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <article
+              v-for="item in clothingItems"
+              :key="item.id"
+              class="overflow-hidden rounded-md border border-stone-200 bg-stone-50"
+            >
+              <div class="flex aspect-square items-center justify-center bg-stone-100">
+                <img v-if="item.imageUrl" :src="item.imageUrl" alt="" class="h-full w-full object-cover">
+                <span v-else class="px-3 text-center text-sm font-medium text-slate-500">No image</span>
+              </div>
+              <div class="p-3">
+                <div class="flex items-start justify-between gap-2">
+                  <h3 class="min-w-0 truncate text-sm font-semibold text-slate-950">{{ item.name }}</h3>
+                  <UBadge color="rose" variant="soft">{{ item.label }}</UBadge>
                 </div>
+                <p v-if="item.color" class="mt-1 text-xs text-slate-500">{{ item.color }}</p>
+                <p v-if="item.notes" class="mt-2 line-clamp-2 text-xs text-slate-600">{{ item.notes }}</p>
               </div>
-              <div class="flex flex-wrap gap-2">
-                <label class="inline-flex cursor-pointer items-center gap-2 rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-stone-50">
-                  <span>{{ clothingUploadLoading ? "Uploading..." : "Upload image" }}</span>
-                  <input type="file" accept="image/*" class="hidden" :disabled="clothingUploadLoading" @change="uploadClothingImage">
-                </label>
-                <UButton type="button" color="rose" icon="i-heroicons-plus" :loading="clothingSaveLoading" :disabled="!clothingForm.name.trim()" @click="createClothingItem(false)">
-                  Add clothes
-                </UButton>
+            </article>
+          </div>
+
+          <div v-else-if="clothingItems?.length" class="overflow-hidden rounded-md border border-stone-200 bg-white">
+            <article
+              v-for="item in clothingItems"
+              :key="item.id"
+              class="flex items-center gap-3 border-b border-stone-200 p-3 last:border-b-0 hover:bg-stone-50"
+            >
+              <div class="h-16 w-16 shrink-0 overflow-hidden rounded-md border border-stone-200 bg-stone-100">
+                <img v-if="item.imageUrl" :src="item.imageUrl" alt="" class="h-full w-full object-cover">
+                <span v-else class="flex h-full w-full items-center justify-center px-2 text-center text-xs font-medium text-slate-500">No image</span>
               </div>
-            </div>
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <h3 class="min-w-0 truncate text-sm font-semibold text-slate-950">{{ item.name }}</h3>
+                  <UBadge color="rose" variant="soft">{{ item.label }}</UBadge>
+                </div>
+                <p v-if="item.color" class="mt-1 text-xs text-slate-500">{{ item.color }}</p>
+                <p v-if="item.notes" class="mt-1 line-clamp-1 text-xs text-slate-600">{{ item.notes }}</p>
+              </div>
+            </article>
+          </div>
+
+          <div v-else class="rounded-md border border-dashed border-stone-300 bg-stone-50 p-6 text-center">
+            <p class="text-sm font-medium text-slate-700">No clothing pieces yet</p>
+            <p class="mt-1 text-sm text-slate-500">Add clothes from the panel on the right, then pair them into outfit plans.</p>
           </div>
         </section>
 
-        <div v-if="clothingItems?.length && wardrobeViewMode === 'grid'" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <article
-            v-for="item in clothingItems"
-            :key="item.id"
-            class="overflow-hidden rounded-md border border-stone-200 bg-stone-50"
-          >
-            <div class="flex aspect-square items-center justify-center bg-stone-100">
-              <img v-if="item.imageUrl" :src="item.imageUrl" alt="" class="h-full w-full object-cover">
-              <span v-else class="px-3 text-center text-sm font-medium text-slate-500">No image</span>
+        <aside class="rounded-lg border border-stone-300 bg-white p-4 shadow-sm">
+          <div class="mb-4 flex items-center gap-2">
+            <UIcon name="i-heroicons-plus-circle" class="h-5 w-5 text-rose-700" />
+            <div>
+              <p class="text-sm font-medium text-slate-500">Wardrobe</p>
+              <h2 class="text-2xl font-semibold text-slate-950">Add clothes</h2>
             </div>
-            <div class="p-3">
-              <div class="flex items-start justify-between gap-2">
-                <h3 class="min-w-0 truncate text-sm font-semibold text-slate-950">{{ item.name }}</h3>
-                <UBadge color="rose" variant="soft">{{ item.label }}</UBadge>
-              </div>
-              <p v-if="item.color" class="mt-1 text-xs text-slate-500">{{ item.color }}</p>
-              <p v-if="item.notes" class="mt-2 line-clamp-2 text-xs text-slate-600">{{ item.notes }}</p>
-            </div>
-          </article>
-        </div>
+          </div>
 
-        <div v-else-if="clothingItems?.length" class="overflow-hidden rounded-md border border-stone-200 bg-white">
-          <article
-            v-for="item in clothingItems"
-            :key="item.id"
-            class="flex items-center gap-3 border-b border-stone-200 p-3 last:border-b-0 hover:bg-stone-50"
-          >
-            <div class="h-16 w-16 shrink-0 overflow-hidden rounded-md border border-stone-200 bg-stone-100">
-              <img v-if="item.imageUrl" :src="item.imageUrl" alt="" class="h-full w-full object-cover">
-              <span v-else class="flex h-full w-full items-center justify-center px-2 text-center text-xs font-medium text-slate-500">No image</span>
-            </div>
-            <div class="min-w-0 flex-1">
-              <div class="flex flex-wrap items-center gap-2">
-                <h3 class="min-w-0 truncate text-sm font-semibold text-slate-950">{{ item.name }}</h3>
-                <UBadge color="rose" variant="soft">{{ item.label }}</UBadge>
-              </div>
-              <p v-if="item.color" class="mt-1 text-xs text-slate-500">{{ item.color }}</p>
-              <p v-if="item.notes" class="mt-1 line-clamp-1 text-xs text-slate-600">{{ item.notes }}</p>
-            </div>
-          </article>
-        </div>
+          <UAlert v-if="clothingError" color="red" variant="soft" icon="i-heroicons-exclamation-triangle" :title="clothingError" class="mb-4" />
 
-        <div v-else class="rounded-md border border-dashed border-stone-300 bg-stone-50 p-6 text-center">
-          <p class="text-sm font-medium text-slate-700">No clothing pieces yet</p>
-          <p class="mt-1 text-sm text-slate-500">Add pieces from the Calendar outfit form, then pair them into outfit plans.</p>
-        </div>
-      </section>
+          <div class="space-y-4">
+            <UFormField label="Name">
+              <UInput v-model="clothingForm.name" placeholder="Yellow Ankara top" />
+            </UFormField>
+            <UFormField label="Label">
+              <USelect v-model="clothingForm.label" :items="clothingLabelOptions" />
+            </UFormField>
+            <UFormField label="Color">
+              <UInput v-model="clothingForm.color" placeholder="Yellow" />
+            </UFormField>
+            <UFormField label="Notes">
+              <UTextarea v-model="clothingForm.notes" :rows="3" placeholder="Fabric, fit, occasion" />
+            </UFormField>
+
+            <div class="overflow-hidden rounded-md border border-stone-200 bg-white">
+              <div class="flex aspect-square items-center justify-center bg-stone-100">
+                <img v-if="clothingForm.imageUrl" :src="clothingForm.imageUrl" alt="" class="h-full w-full object-cover">
+                <span v-else class="px-3 text-center text-sm font-medium text-slate-500">No image</span>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+              <label class="inline-flex cursor-pointer items-center gap-2 rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-stone-50">
+                <span>{{ clothingUploadLoading ? "Uploading..." : "Upload image" }}</span>
+                <input type="file" accept="image/*" class="hidden" :disabled="clothingUploadLoading" @change="uploadClothingImage">
+              </label>
+              <UButton type="button" color="rose" icon="i-heroicons-plus" :loading="clothingSaveLoading" :disabled="!clothingForm.name.trim()" @click="createClothingItem(false)">
+                Add clothes
+              </UButton>
+            </div>
+          </div>
+        </aside>
+      </div>
 
       <div v-if="activeTab === 'calendar'" class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <section class="rounded-lg border border-stone-300 bg-white p-4 shadow-sm">
