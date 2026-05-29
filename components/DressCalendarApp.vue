@@ -21,6 +21,14 @@ interface ClothingForm {
   notes: string
 }
 
+interface BatchClothingDraft {
+  name: string
+  label: string
+  color: string
+  imageUrl: string
+  notes: string
+}
+
 interface DressSuggestion {
   entry: DressEntry
   score: number
@@ -95,6 +103,11 @@ const clothingUploadLoading = ref(false)
 const clothingDeleteLoading = ref(false)
 const clothingDeleteConfirmOpen = ref(false)
 const clothingItemPendingDelete = ref<ClothingItem | null>(null)
+const batchClothesOpen = ref(false)
+const batchClothesLoading = ref(false)
+const batchClothesUploadLoading = ref(false)
+const batchClothesError = ref("")
+const batchImageDrafts = ref<BatchClothingDraft[]>([])
 const wardrobeViewMode = ref<'grid' | 'list'>('grid')
 const showAddClothesForm = ref(true)
 const clothingError = ref("")
@@ -157,6 +170,12 @@ const selectedClothingItems = computed(() => {
   const selectedIds = new Set(form.clothingItemIds)
   return (clothingItems.value || []).filter((item) => selectedIds.has(item.id))
 })
+const validBatchClothes = computed(() =>
+  batchImageDrafts.value.filter((item) => item.name.trim() && normalizeClothingLabel(item.label)).map((item) => ({
+    ...item,
+    label: normalizeClothingLabel(item.label)
+  }))
+)
 const calendarDays = computed(() => buildCalendarDays(monthCursor.value))
 
 watch(selectedDate, (date) => {
@@ -501,6 +520,89 @@ async function createClothingItem(attachToCurrentOutfit = true) {
     clothingError.value = error?.statusMessage || error?.data?.statusMessage || "Could not save this clothing item."
   } finally {
     clothingSaveLoading.value = false
+  }
+}
+
+function normalizeClothingLabel(label: string) {
+  const normalized = label.trim().toLowerCase()
+  return clothingLabelOptions.find((option) => option.toLowerCase() === normalized) || ""
+}
+
+function clothingNameFromFileName(fileName: string) {
+  return fileName
+    .replace(/\.[^.]+$/, "")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase())
+}
+
+async function uploadBatchClothingImages(event: Event) {
+  const input = event.target as HTMLInputElement
+  const files = Array.from(input.files || [])
+  if (!files.length) {
+    return
+  }
+
+  batchClothesError.value = ""
+  batchClothesUploadLoading.value = true
+
+  try {
+    const uploaded: BatchClothingDraft[] = []
+
+    for (const file of files) {
+      const body = new FormData()
+      body.append("file", file)
+      const result = await $fetch<{ imageUrl: string }>("/api/clothes/upload", {
+        method: "POST",
+        body
+      })
+      uploaded.push({
+        name: clothingNameFromFileName(file.name) || "New clothing piece",
+        label: "Dress",
+        color: "",
+        imageUrl: result.imageUrl,
+        notes: ""
+      })
+    }
+
+    batchImageDrafts.value = [...batchImageDrafts.value, ...uploaded]
+    toast.add({ title: "Uploaded " + uploaded.length + " images", color: "green" })
+  } catch (error: any) {
+    batchClothesError.value = error?.statusMessage || error?.data?.statusMessage || "Could not upload these images."
+  } finally {
+    batchClothesUploadLoading.value = false
+    input.value = ""
+  }
+}
+
+function removeBatchImageDraft(index: number) {
+  batchImageDrafts.value.splice(index, 1)
+}
+
+async function importBatchClothingItems() {
+  const items = validBatchClothes.value
+  if (!items.length) {
+    return
+  }
+
+  batchClothesError.value = ""
+  batchClothesLoading.value = true
+
+  try {
+    const result = await $fetch<{ count: number, skipped: Array<{ index: number, reason: string }> }>("/api/clothes/batch", {
+      method: "POST",
+      body: { items }
+    })
+    toast.add({ title: "Imported " + result.count + " clothing pieces", color: "green" })
+    batchClothesOpen.value = false
+    batchImageDrafts.value = []
+    await refreshClothingItems()
+    await refresh()
+  } catch (error: any) {
+    batchClothesError.value = error?.statusMessage || error?.data?.statusMessage || "Could not import these clothing pieces."
+  } finally {
+    batchClothesLoading.value = false
   }
 }
 
@@ -903,6 +1005,14 @@ function toDateString(year: number, month: number, day: number) {
               >
                 Add clothes
               </UButton>
+              <UButton
+                type="button"
+                color="white"
+                icon="i-heroicons-photo"
+                @click="batchClothesOpen = true"
+              >
+                Batch upload
+              </UButton>
               <div class="flex rounded-md border border-stone-300 bg-white p-1" aria-label="Wardrobe view mode">
                 <button
                   type="button"
@@ -1280,6 +1390,93 @@ function toDateString(year: number, month: number, day: number) {
       </div>
 
     <UModal
+      v-model:open="batchClothesOpen"
+      title="Batch upload clothes"
+    >
+      <template #body>
+        <div class="space-y-4">
+          <UAlert
+            v-if="batchClothesError"
+            color="red"
+            variant="soft"
+            icon="i-heroicons-exclamation-triangle"
+            :title="batchClothesError"
+          />
+
+          <label class="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-stone-300 bg-stone-50 px-4 py-5 text-sm font-medium text-slate-700 transition hover:border-rose-300 hover:bg-rose-50">
+            <UIcon name="i-heroicons-photo" class="h-5 w-5 text-rose-700" />
+            <span>{{ batchClothesUploadLoading ? "Uploading images..." : "Choose multiple images" }}</span>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              class="hidden"
+              :disabled="batchClothesUploadLoading"
+              @change="uploadBatchClothingImages"
+            >
+          </label>
+
+          <div v-if="batchImageDrafts.length" class="space-y-3">
+            <div
+              v-for="(draft, index) in batchImageDrafts"
+              :key="draft.imageUrl"
+              class="grid gap-3 rounded-md border border-stone-200 bg-white p-3 sm:grid-cols-[96px_minmax(0,1fr)]"
+            >
+              <div class="overflow-hidden rounded-md border border-stone-200 bg-stone-100">
+                <img :src="draft.imageUrl" alt="" class="aspect-square h-full w-full object-cover">
+              </div>
+              <div class="space-y-3">
+                <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  <UFormField label="Name">
+                    <UInput v-model="draft.name" class="w-full" />
+                  </UFormField>
+                  <UFormField label="Label">
+                    <USelect v-model="draft.label" :items="clothingLabelOptions" class="w-full" />
+                  </UFormField>
+                  <UFormField label="Color">
+                    <UInput v-model="draft.color" class="w-full" />
+                  </UFormField>
+                </div>
+                <div class="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+                  <UFormField label="Notes">
+                    <UInput v-model="draft.notes" class="w-full" />
+                  </UFormField>
+                  <div class="flex items-end">
+                    <UButton type="button" color="white" icon="i-heroicons-x-mark" @click="removeBatchImageDraft(index)">
+                      Remove
+                    </UButton>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="!batchImageDrafts.length" class="rounded-md border border-stone-200 bg-white p-3 text-sm text-slate-500">
+            Select images to create editable clothing-piece drafts.
+          </div>
+        </div>
+      </template>
+
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <UButton color="white" :disabled="batchClothesLoading" @click="batchClothesOpen = false">
+            Cancel
+          </UButton>
+          <UButton
+            type="button"
+            icon="i-heroicons-arrow-up-tray"
+            class="bg-rose-600 text-white hover:bg-rose-700 disabled:bg-rose-300"
+            :loading="batchClothesLoading"
+            :disabled="!validBatchClothes.length"
+            @click="importBatchClothingItems"
+          >
+            Save {{ validBatchClothes.length }} pieces
+          </UButton>
+        </div>
+      </template>
+    </UModal>
+
+    <UModal
       v-model:open="importOpen"
       title="Import from Keep"
       description="Paste all three Google Keep notes here. Slash dates are read as DD/MM/YYYY, for example 08/12/2020 means 8 December 2020."
@@ -1382,7 +1579,7 @@ function toDateString(year: number, month: number, day: number) {
       </template>
 
       <template #footer>
-        <div class="flex justify-end gap-2">
+        <div class="flex justify-center gap-2">
           <UButton
             type="button"
             icon="i-heroicons-trash"
@@ -1420,7 +1617,7 @@ function toDateString(year: number, month: number, day: number) {
       </template>
 
       <template #footer>
-        <div class="flex justify-end gap-2">
+        <div class="flex justify-center gap-2">
           <UButton
             type="button"
             icon="i-heroicons-trash"
