@@ -1,6 +1,6 @@
-import { db, toDressEntry, type DressEntryRow } from "../../utils/db"
+import { listDressEntries } from "../../utils/db"
 
-export default defineEventHandler((event) => {
+export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const title = typeof query.title === "string" ? query.title.trim() : ""
 
@@ -9,13 +9,13 @@ export default defineEventHandler((event) => {
   }
 
   const normalized = normalizeTitle(title)
-  const rows = db.prepare("SELECT * FROM dress_entries ORDER BY date DESC").all() as DressEntryRow[]
+  const rows = await listDressEntries({ order: "desc" })
   const matches = rows.filter((row) => normalizeTitle(row.title) === normalized)
 
   return {
     title,
     count: matches.length,
-    entries: matches.map(toDressEntry)
+    entries: matches
   }
 })
 

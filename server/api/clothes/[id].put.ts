@@ -36,7 +36,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: "Choose a valid clothing label." })
   }
 
-  const item = updateClothingItem(id, {
+  const item = await updateClothingItem(id, {
     name,
     label,
     color: cleanOptional(body.color),

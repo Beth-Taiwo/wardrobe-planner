@@ -1,13 +1,13 @@
-import { db, toDressEntry, type DressEntryRow } from "../../utils/db"
+import { listDressEntries } from "../../utils/db"
 
 const datePattern = /^\d{4}-\d{2}-\d{2}$/
 
 interface Candidate {
-  row: DressEntryRow
+  row: Awaited<ReturnType<typeof listDressEntries>>[number]
   count: number
 }
 
-export default defineEventHandler((event) => {
+export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const date = typeof query.date === "string" ? query.date : ""
   const windowDays = typeof query.windowDays === "string" ? Math.max(30, Math.min(180, Number(query.windowDays) || 60)) : 60
@@ -17,7 +17,7 @@ export default defineEventHandler((event) => {
   }
 
   const targetDate = parseDate(date)
-  const rows = db.prepare("SELECT * FROM dress_entries WHERE date <> ? ORDER BY date ASC").all(date) as DressEntryRow[]
+  const rows = await listDressEntries({ excludeDate: date })
   const recentTitles: string[] = []
   const counts = new Map<string, number>()
   const latestByTitle = new Map<string, Candidate>()
@@ -71,7 +71,7 @@ export default defineEventHandler((event) => {
       if (sameWeekday) { reasons.push("Matches this weekday pattern") }
       if (workdayFit) { reasons.push("Fits a workday category") }
 
-      return { entry: toDressEntry(candidate.row), score, lastWornDate: candidate.row.date, daysSinceWorn, reasons }
+      return { entry: candidate.row, score, lastWornDate: candidate.row.date, daysSinceWorn, reasons }
     })
     .sort((a, b) => b.score - a.score || b.daysSinceWorn - a.daysSinceWorn || a.entry.title.localeCompare(b.entry.title))
     .slice(0, 5)

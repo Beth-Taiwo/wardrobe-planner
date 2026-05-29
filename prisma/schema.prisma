@@ -1,0 +1,50 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model DressEntry {
+  id            String           @id
+  date          String           @unique
+  title         String
+  color         String?
+  category      String?
+  notes         String?
+  imageUrl      String?          @map("image_url")
+  sourceUrl     String?          @map("source_url")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+  clothingItems DressEntryItem[]
+
+  @@index([date], map: "idx_dress_entries_date")
+  @@map("dress_entries")
+}
+
+model ClothingItem {
+  id           String           @id
+  name         String
+  label        String
+  color        String?
+  imageUrl     String?          @map("image_url")
+  notes        String?
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+  dressEntries DressEntryItem[]
+
+  @@index([label], map: "idx_clothing_items_label")
+  @@map("clothing_items")
+}
+
+model DressEntryItem {
+  dressEntryId   String       @map("dress_entry_id")
+  clothingItemId String       @map("clothing_item_id")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  dressEntry     DressEntry   @relation(fields: [dressEntryId], references: [id], onDelete: Cascade)
+  clothingItem   ClothingItem @relation(fields: [clothingItemId], references: [id], onDelete: Cascade)
+
+  @@id([dressEntryId, clothingItemId])
+  @@map("dress_entry_items")
+}

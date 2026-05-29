@@ -1,4 +1,4 @@
-import { db } from '../../utils/db'
+import { deleteDressEntry } from '../../utils/db'
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  db.prepare('DELETE FROM dress_entries WHERE id = ?').run(id)
+  await deleteDressEntry(id)
 
   return { ok: true }
 })

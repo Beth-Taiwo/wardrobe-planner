@@ -18,7 +18,7 @@ const entries = [
 ]
 
 for (const entry of entries) {
-  upsertDressEntry(entry)
+  await upsertDressEntry(entry)
 }
 
 console.log(`Seeded ${entries.length} dress entries.`)

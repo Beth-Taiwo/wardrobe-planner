@@ -43,7 +43,7 @@ export default defineEventHandler(async (event) => {
       continue
     }
 
-    created.push(createClothingItem({
+    created.push(await createClothingItem({
       name,
       label,
       color: cleanOptional(item.color),

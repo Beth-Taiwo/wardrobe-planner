@@ -1,4 +1,4 @@
-import { db, upsertDressEntry } from "../utils/db"
+import { importDressEntries } from "../utils/db"
 import { previewKeepEntries } from "../utils/dress"
 
 export default defineEventHandler(async (event) => {
@@ -14,16 +14,10 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const saveMany = db.transaction(() =>
-    entries.map((entry) =>
-      upsertDressEntry({
-        ...entry,
-        sourceUrl: "manual-google-keep-import"
-      })
-    )
-  )
-
-  const saved = saveMany()
+  const saved = await importDressEntries(entries.map((entry) => ({
+    ...entry,
+    sourceUrl: "manual-google-keep-import"
+  })))
 
   return {
     count: saved.length,

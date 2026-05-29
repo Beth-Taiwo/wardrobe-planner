@@ -1,4 +1,4 @@
-import { updateDressEntry, upsertDressEntry } from '../../utils/db'
+import { isUniqueConstraintError, updateDressEntry, upsertDressEntry } from '../../utils/db'
 import { cleanOptional, dressEntrySchema } from '../../utils/dress'
 
 export default defineEventHandler(async (event) => {
@@ -16,9 +16,9 @@ export default defineEventHandler(async (event) => {
 
   if (typeof body.id === 'string' && body.id.trim()) {
     try {
-      return updateDressEntry(body.id, parsed)
+      return await updateDressEntry(body.id, parsed)
     } catch (error: any) {
-      if (String(error?.message || '').includes('UNIQUE constraint failed')) {
+      if (isUniqueConstraintError(error) || String(error?.message || '').includes('UNIQUE constraint failed')) {
         throw createError({
           statusCode: 409,
           statusMessage: 'Another outfit already exists for that date.'
