@@ -1,10 +1,10 @@
-import { setOAuthState } from "../../../utils/auth"
+import { getGoogleRedirectUri, setOAuthState } from "../../../utils/auth"
 
 export default defineEventHandler((event) => {
   const clientId = process.env.GOOGLE_CLIENT_ID
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI
+  const redirectUri = getGoogleRedirectUri(event)
 
-  if (!clientId || !redirectUri) {
+  if (!clientId) {
     throw createError({ statusCode: 500, statusMessage: "Google OAuth is not configured." })
   }
 

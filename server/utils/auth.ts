@@ -1,7 +1,7 @@
 import { createHmac, randomBytes, randomUUID, scrypt, timingSafeEqual } from "node:crypto"
 import { promisify } from "node:util"
 import type { H3Event } from "h3"
-import { createError, deleteCookie, getCookie, setCookie } from "h3"
+import { createError, deleteCookie, getCookie, getRequestURL, setCookie } from "h3"
 import { prisma } from "./db"
 
 const scryptAsync = promisify(scrypt)
@@ -159,4 +159,13 @@ export function verifyOAuthState(event: H3Event, state: string) {
   const expected = getCookie(event, oauthStateCookieName)
   deleteCookie(event, oauthStateCookieName, { path: "/" })
   return Boolean(expected && state && expected === state)
+}
+
+export function getGoogleRedirectUri(event: H3Event) {
+  if (process.env.GOOGLE_REDIRECT_URI) {
+    return process.env.GOOGLE_REDIRECT_URI
+  }
+
+  const url = getRequestURL(event)
+  return url.origin + "/api/auth/google/callback"
 }

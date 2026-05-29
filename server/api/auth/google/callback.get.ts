@@ -1,4 +1,4 @@
-import { createSession, normalizeEmail, verifyOAuthState } from "../../../utils/auth"
+import { createSession, getGoogleRedirectUri, normalizeEmail, verifyOAuthState } from "../../../utils/auth"
 import { prisma } from "../../../utils/db"
 
 interface GoogleTokenResponse {
@@ -24,9 +24,9 @@ export default defineEventHandler(async (event) => {
 
   const clientId = process.env.GOOGLE_CLIENT_ID
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI
+  const redirectUri = getGoogleRedirectUri(event)
 
-  if (!clientId || !clientSecret || !redirectUri) {
+  if (!clientId || !clientSecret) {
     throw createError({ statusCode: 500, statusMessage: "Google OAuth is not configured." })
   }
 
