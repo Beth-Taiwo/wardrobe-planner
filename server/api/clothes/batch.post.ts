@@ -1,5 +1,6 @@
 import { createClothingItem } from "../../utils/db"
 import { cleanOptional } from "../../utils/dress"
+import { requireUser } from "../../utils/auth"
 
 const allowedLabels = new Set([
   "Blouse",
@@ -19,6 +20,7 @@ const allowedLabels = new Set([
 ])
 
 export default defineEventHandler(async (event) => {
+  const user = await requireUser(event)
   const body = await readBody(event)
   const items = Array.isArray(body.items) ? body.items : []
 
@@ -43,7 +45,7 @@ export default defineEventHandler(async (event) => {
       continue
     }
 
-    created.push(await createClothingItem({
+    created.push(await createClothingItem(user.id, {
       name,
       label,
       color: cleanOptional(item.color),

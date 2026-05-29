@@ -1,7 +1,9 @@
 import { isUniqueConstraintError, updateDressEntry, upsertDressEntry } from '../../utils/db'
 import { cleanOptional, dressEntrySchema } from '../../utils/dress'
+import { requireUser } from '../../utils/auth'
 
 export default defineEventHandler(async (event) => {
+  const user = await requireUser(event)
   const body = await readBody(event)
   const parsed = dressEntrySchema.parse({
     date: body.date,
@@ -16,7 +18,11 @@ export default defineEventHandler(async (event) => {
 
   if (typeof body.id === 'string' && body.id.trim()) {
     try {
-      return await updateDressEntry(body.id, parsed)
+      const saved = await updateDressEntry(user.id, body.id, parsed)
+      if (!saved) {
+        throw createError({ statusCode: 404, statusMessage: 'Dress entry not found.' })
+      }
+      return saved
     } catch (error: any) {
       if (isUniqueConstraintError(error) || String(error?.message || '').includes('UNIQUE constraint failed')) {
         throw createError({
@@ -29,5 +35,5 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  return upsertDressEntry(parsed)
+  return upsertDressEntry(user.id, parsed)
 })

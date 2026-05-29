@@ -1,4 +1,5 @@
 import { listDressEntries } from "../../utils/db"
+import { requireUser } from "../../utils/auth"
 
 const datePattern = /^\d{4}-\d{2}-\d{2}$/
 
@@ -8,6 +9,7 @@ interface Candidate {
 }
 
 export default defineEventHandler(async (event) => {
+  const user = await requireUser(event)
   const query = getQuery(event)
   const date = typeof query.date === "string" ? query.date : ""
   const windowDays = typeof query.windowDays === "string" ? Math.max(30, Math.min(180, Number(query.windowDays) || 60)) : 60
@@ -17,7 +19,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const targetDate = parseDate(date)
-  const rows = await listDressEntries({ excludeDate: date })
+  const rows = await listDressEntries(user.id, { excludeDate: date })
   const recentTitles: string[] = []
   const counts = new Map<string, number>()
   const latestByTitle = new Map<string, Candidate>()

@@ -1,5 +1,6 @@
 import { updateClothingItem } from "../../utils/db"
 import { cleanOptional } from "../../utils/dress"
+import { requireUser } from "../../utils/auth"
 
 const allowedLabels = new Set([
   "Blouse",
@@ -19,6 +20,7 @@ const allowedLabels = new Set([
 ])
 
 export default defineEventHandler(async (event) => {
+  const user = await requireUser(event)
   const id = getRouterParam(event, "id")
   const body = await readBody(event)
   const name = typeof body.name === "string" ? body.name.trim() : ""
@@ -36,7 +38,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: "Choose a valid clothing label." })
   }
 
-  const item = await updateClothingItem(id, {
+  const item = await updateClothingItem(user.id, id, {
     name,
     label,
     color: cleanOptional(body.color),

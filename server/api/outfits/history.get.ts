@@ -1,6 +1,8 @@
 import { listDressEntries } from "../../utils/db"
+import { requireUser } from "../../utils/auth"
 
 export default defineEventHandler(async (event) => {
+  const user = await requireUser(event)
   const query = getQuery(event)
   const title = typeof query.title === "string" ? query.title.trim() : ""
 
@@ -9,7 +11,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const normalized = normalizeTitle(title)
-  const rows = await listDressEntries({ order: "desc" })
+  const rows = await listDressEntries(user.id, { order: "desc" })
   const matches = rows.filter((row) => normalizeTitle(row.title) === normalized)
 
   return {
