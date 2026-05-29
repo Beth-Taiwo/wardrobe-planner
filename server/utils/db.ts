@@ -1,18 +1,15 @@
 import { Prisma, PrismaClient } from "@prisma/client"
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3"
-import { mkdirSync } from "node:fs"
-import { dirname, join } from "node:path"
+import { PrismaMariaDb } from "@prisma/adapter-mariadb"
 
 type PrismaClientOrTransaction = PrismaClient | Prisma.TransactionClient
 
-const dbPath = join(process.cwd(), "data", "dress-calendar.db")
-mkdirSync(dirname(dbPath), { recursive: true })
+const databaseUrl = process.env.DATABASE_URL || "mysql://root:password@localhost:3306/wardrobe_planner"
 
 const globalForPrisma = globalThis as typeof globalThis & {
   wardrobePrisma?: PrismaClient
 }
 
-const adapter = new PrismaBetterSqlite3({ url: dbPath })
+const adapter = new PrismaMariaDb(databaseUrl)
 const prisma = globalForPrisma.wardrobePrisma ?? new PrismaClient({ adapter })
 
 if (process.env.NODE_ENV !== "production") {

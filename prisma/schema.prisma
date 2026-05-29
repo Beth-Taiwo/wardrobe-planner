@@ -3,18 +3,18 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
 }
 
 model DressEntry {
-  id            String           @id
-  date          String           @unique
-  title         String
-  color         String?
-  category      String?
-  notes         String?
-  imageUrl      String?          @map("image_url")
-  sourceUrl     String?          @map("source_url")
+  id            String           @id @db.VarChar(36)
+  date          String           @unique @db.VarChar(10)
+  title         String           @db.VarChar(255)
+  color         String?          @db.VarChar(100)
+  category      String?          @db.VarChar(100)
+  notes         String?          @db.Text
+  imageUrl      String?          @map("image_url") @db.Text
+  sourceUrl     String?          @map("source_url") @db.Text
   createdAt     DateTime         @default(now()) @map("created_at")
   updatedAt     DateTime         @updatedAt @map("updated_at")
   clothingItems DressEntryItem[]
@@ -24,12 +24,12 @@ model DressEntry {
 }
 
 model ClothingItem {
-  id           String           @id
-  name         String
-  label        String
-  color        String?
-  imageUrl     String?          @map("image_url")
-  notes        String?
+  id           String           @id @db.VarChar(36)
+  name         String           @db.VarChar(255)
+  label        String           @db.VarChar(100)
+  color        String?          @db.VarChar(100)
+  imageUrl     String?          @map("image_url") @db.Text
+  notes        String?          @db.Text
   createdAt    DateTime         @default(now()) @map("created_at")
   updatedAt    DateTime         @updatedAt @map("updated_at")
   dressEntries DressEntryItem[]
@@ -39,8 +39,8 @@ model ClothingItem {
 }
 
 model DressEntryItem {
-  dressEntryId   String       @map("dress_entry_id")
-  clothingItemId String       @map("clothing_item_id")
+  dressEntryId   String       @map("dress_entry_id") @db.VarChar(36)
+  clothingItemId String       @map("clothing_item_id") @db.VarChar(36)
   createdAt      DateTime     @default(now()) @map("created_at")
   dressEntry     DressEntry   @relation(fields: [dressEntryId], references: [id], onDelete: Cascade)
   clothingItem   ClothingItem @relation(fields: [clothingItemId], references: [id], onDelete: Cascade)
