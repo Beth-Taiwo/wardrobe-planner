@@ -15,9 +15,8 @@ COPY package.json package-lock.json ./
 # Also guard against CI environments that inject ESBUILD_BINARY_PATH (which can make
 # esbuild's postinstall validate the wrong binary version).
 RUN ESBUILD_BINARY_PATH= \
-  npm_config_optional=true \
   npm_config_ignore_scripts=false \
-  npm ci --install-strategy=nested
+  npm ci --include=optional --install-strategy=nested
 
 FROM deps AS build
 
