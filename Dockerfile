@@ -11,7 +11,8 @@ RUN apt-get update \
 FROM base AS deps
 
 COPY package.json package-lock.json ./
-RUN npm ci
+# Work around npm hoisting edge-cases with platform binaries (esbuild/@esbuild/*).
+RUN npm ci --install-strategy=nested
 
 FROM deps AS build
 
