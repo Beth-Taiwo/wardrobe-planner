@@ -180,7 +180,7 @@ const calendarDays = computed(() => buildCalendarDays(monthCursor.value))
 
 watch(selectedDate, (date) => {
   suggestionResults.value = []
-  suggestionError.value = ""
+  suggestionError.value =""
 
   if (keepFormOnDateChange.value) {
     form.date = date
@@ -223,30 +223,30 @@ watch(dressDeleteConfirmOpen, (open) => {
   }
 })
 
-const categoryOptions = ["Casual", "Work", "Cooperate", "Traditional", "Event", "Travel", "Formal", "Workout"]
-const clothingLabelOptions = ["Blouse", "Shirt", "Skirt", "Dress", "Gown", "Trousers", "Jeans", "Kimono", "Boubou", "Jacket", "Top", "Shoes", "Accessory", "Other"]
+const categoryOptions = ["Casual","Work","Cooperate","Traditional","Event","Travel","Formal","Workout"]
+const clothingLabelOptions = ["Blouse","Shirt","Skirt","Dress","Gown","Trousers","Jeans","Kimono","Boubou","Jacket","Top","Shoes","Accessory","Other"]
 const navTabs = [
-  { key: "insight", label: "Insight", path: "/insight", icon: "i-heroicons-chart-bar" },
-  { key: "wardrobe", label: "Wardrobe", path: "/wardrobe", icon: "i-heroicons-swatch" },
-  { key: "calendar", label: "Calendar", path: "/calendar", icon: "i-heroicons-calendar-days" }
+  { key:"insight", label:"Insight", path:"/insight", icon:"i-heroicons-chart-bar" },
+  { key:"wardrobe", label:"Wardrobe", path:"/wardrobe", icon:"i-heroicons-swatch" },
+  { key:"calendar", label:"Calendar", path:"/calendar", icon:"i-heroicons-calendar-days" }
 ] as const
 const suggestionWindowOptions = [30, 60, 90, 120]
 const categorySearchOptions = computed(() => ["All categories", ...categoryOptions])
 
 function getTabFromPath(path: string): AppTab {
   if (path.startsWith("/insight")) {
-    return "insight"
+    return"insight"
   }
 
   if (path.startsWith("/wardrobe")) {
-    return "wardrobe"
+    return"wardrobe"
   }
 
-  return "calendar"
+  return"calendar"
 }
 
 function goToTab(tab: AppTab) {
-  return navigateTo(tab === "calendar" ? "/calendar" : "/" + tab)
+  return navigateTo(tab ==="calendar" ?"/calendar" :"/" + tab)
 }
 
 function selectDate(date: string) {
@@ -292,44 +292,44 @@ async function handleFormDateChange() {
   keepFormOnDateChange.value = false
 }
 
-async function runSearch(kind: "date" | "month" | "year" | "text" | "category") {
+async function runSearch(kind:"date" |"month" |"year" |"text" |"category") {
   searching.value = true
 
   try {
     const query: Record<string, string> = {}
 
-    if (kind === "date") {
+    if (kind ==="date") {
       query.date = searchDate.value
-    } else if (kind === "month") {
+    } else if (kind ==="month") {
       query.month = searchMonth.value
-    } else if (kind === "year") {
+    } else if (kind ==="year") {
       query.year = searchYear.value
-    } else if (kind === "text") {
+    } else if (kind ==="text") {
       query.q = searchText.value
-    } else if (kind === "category" && searchCategory.value && searchCategory.value !== "All categories") {
+    } else if (kind ==="category" && searchCategory.value && searchCategory.value !=="All categories") {
       query.category = searchCategory.value
     }
 
     const results = await $fetch<DressEntry[]>("/api/dresses", { query })
     searchResults.value = results
 
-    if (kind === "date") {
+    if (kind ==="date") {
       jumpToDate(searchDate.value)
-      searchLabel.value = results.length ? "1 outfit found for " + searchDate.value : "No outfit found for " + searchDate.value
-    } else if (kind === "month") {
+      searchLabel.value = results.length ?"1 outfit found for" + searchDate.value :"No outfit found for" + searchDate.value
+    } else if (kind ==="month") {
       const [year, month] = searchMonth.value.split("-").map(Number)
       monthCursor.value = new Date(Date.UTC(year, month - 1, 1))
-      selectedDate.value = searchMonth.value + "-01"
-      searchLabel.value = results.length + " outfit" + (results.length === 1 ? "" : "s") + " found for " + searchMonth.value
-    } else if (kind === "year") {
+      selectedDate.value = searchMonth.value +"-01"
+      searchLabel.value = results.length +" outfit" + (results.length === 1 ?"" :"s") +" found for" + searchMonth.value
+    } else if (kind ==="year") {
       const year = Number(searchYear.value)
       monthCursor.value = new Date(Date.UTC(year, 0, 1))
-      selectedDate.value = searchYear.value + "-01-01"
-      searchLabel.value = results.length + " outfit" + (results.length === 1 ? "" : "s") + " found in " + searchYear.value
-    } else if (kind === "text") {
-      searchLabel.value = results.length + " outfit" + (results.length === 1 ? "" : "s") + " matching " + searchText.value
+      selectedDate.value = searchYear.value +"-01-01"
+      searchLabel.value = results.length +" outfit" + (results.length === 1 ?"" :"s") +" found in" + searchYear.value
+    } else if (kind ==="text") {
+      searchLabel.value = results.length +" outfit" + (results.length === 1 ?"" :"s") +" matching" + searchText.value
     } else {
-      searchLabel.value = results.length + " outfit" + (results.length === 1 ? "" : "s") + " in " + searchCategory.value
+      searchLabel.value = results.length +" outfit" + (results.length === 1 ?"" :"s") +" in" + searchCategory.value
     }
   } finally {
     searching.value = false
@@ -338,7 +338,7 @@ async function runSearch(kind: "date" | "month" | "year" | "text" | "category") 
 
 function clearSearch() {
   searchResults.value = []
-  searchLabel.value = ""
+  searchLabel.value =""
 }
 
 function openSearchResult(entry: DressEntry) {
@@ -356,12 +356,12 @@ function moveMonth(offset: number) {
 }
 
 async function saveDress(event: FormSubmitEvent<DressForm>) {
-  saveError.value = ""
+  saveError.value =""
   saveLoading.value = true
 
   try {
     const saved = await $fetch<DressEntry>("/api/dresses", {
-      method: "POST",
+      method:"POST",
       body: {
         ...form,
         id: editingEntryId.value
@@ -372,13 +372,13 @@ async function saveDress(event: FormSubmitEvent<DressForm>) {
     editingEntryId.value = saved.id
     selectedDate.value = saved.date
     fillFormFromEntry(saved)
-    toast.add({ title: "Dress saved", color: "green" })
+    toast.add({ title:"Dress saved", color:"green" })
     await refresh()
     await refreshStats()
     await nextTick()
     keepFormOnDateChange.value = false
   } catch (error: any) {
-    saveError.value = error?.statusMessage || error?.data?.statusMessage || "Could not save this outfit."
+    saveError.value = error?.statusMessage || error?.data?.statusMessage ||"Could not save this outfit."
   } finally {
     saveLoading.value = false
   }
@@ -393,9 +393,9 @@ function requestDeleteDress() {
   dressPendingDelete.value = {
     id,
     date: form.date,
-    title: form.title || selectedEntry.value?.title || "this outfit",
-    category: form.category || selectedEntry.value?.category || "Uncategorized",
-    imageUrl: form.imageUrl || selectedEntry.value?.imageUrl || ""
+    title: form.title || selectedEntry.value?.title ||"this outfit",
+    category: form.category || selectedEntry.value?.category ||"Uncategorized",
+    imageUrl: form.imageUrl || selectedEntry.value?.imageUrl ||""
   }
   dressDeleteConfirmOpen.value = true
 }
@@ -408,14 +408,14 @@ async function confirmDeleteDress() {
 
   deleteLoading.value = true
   try {
-    await $fetch("/api/dresses/" + item.id, { method: "DELETE" })
-    toast.add({ title: "Dress removed", color: "gray" })
+    await $fetch("/api/dresses/" + item.id, { method:"DELETE" })
+    toast.add({ title:"Dress removed", color:"gray" })
     editingEntryId.value = null
-    form.title = ""
-    form.color = ""
-    form.category = "Casual"
-    form.notes = ""
-    form.imageUrl = ""
+    form.title =""
+    form.color =""
+    form.category ="Casual"
+    form.notes =""
+    form.imageUrl =""
     form.clothingItemIds = []
     await refresh()
     await refreshStats()
@@ -431,7 +431,7 @@ async function suggestDress() {
     return
   }
 
-  suggestionError.value = ""
+  suggestionError.value =""
   suggestionLoading.value = true
 
   try {
@@ -446,12 +446,12 @@ async function suggestDress() {
 
     if (result.suggestions[0]) {
       applySuggestion(result.suggestions[0].entry)
-      toast.add({ title: "Suggested an outfit", color: "green" })
+      toast.add({ title:"Suggested an outfit", color:"green" })
     } else {
-      suggestionError.value = "No suggestion found outside the selected repeat window."
+      suggestionError.value ="No suggestion found outside the selected repeat window."
     }
   } catch (error: any) {
-    suggestionError.value = error?.statusMessage || error?.data?.statusMessage || "Could not suggest an outfit."
+    suggestionError.value = error?.statusMessage || error?.data?.statusMessage ||"Could not suggest an outfit."
   } finally {
     suggestionLoading.value = false
   }
@@ -459,16 +459,16 @@ async function suggestDress() {
 
 function applySuggestion(entry: DressEntry) {
   form.title = entry.title
-  form.color = entry.color || ""
-  form.category = entry.category || "Casual"
-  form.notes = entry.notes || ""
-  form.imageUrl = entry.imageUrl || ""
+  form.color = entry.color ||""
+  form.category = entry.category ||"Casual"
+  form.notes = entry.notes ||""
+  form.imageUrl = entry.imageUrl ||""
   form.clothingItemIds = entry.clothingItems?.map((item) => item.id) || []
 }
 
 function clearSuggestions() {
   suggestionResults.value = []
-  suggestionError.value = ""
+  suggestionError.value =""
 }
 
 async function loadOutfitHistory() {
@@ -489,8 +489,8 @@ async function loadOutfitHistory() {
 async function normalizeCategories() {
   normalizingCategories.value = true
   try {
-    const result = await $fetch<{ updated: number }>("/api/categories/normalize", { method: "POST" })
-    toast.add({ title: "Updated " + result.updated + " categories", color: "green" })
+    const result = await $fetch<{ updated: number }>("/api/categories/normalize", { method:"POST" })
+    toast.add({ title:"Updated" + result.updated +" categories", color:"green" })
     await refresh()
     await refreshStats()
   } finally {
@@ -499,13 +499,13 @@ async function normalizeCategories() {
 }
 
 async function createClothingItem(attachToCurrentOutfit = true) {
-  clothingError.value = ""
+  clothingError.value =""
   clothingSaveLoading.value = true
 
   try {
     const isEditing = Boolean(editingClothingItemId.value)
-    const item = await $fetch<ClothingItem>(isEditing ? "/api/clothes/" + editingClothingItemId.value : "/api/clothes", {
-      method: isEditing ? "PUT" : "POST",
+    const item = await $fetch<ClothingItem>(isEditing ?"/api/clothes/" + editingClothingItemId.value :"/api/clothes", {
+      method: isEditing ?"PUT" :"POST",
       body: clothingForm
     })
 
@@ -513,11 +513,11 @@ async function createClothingItem(attachToCurrentOutfit = true) {
       form.clothingItemIds = [...form.clothingItemIds, item.id]
     }
     clearClothingForm()
-    toast.add({ title: isEditing ? "Clothing item updated" : "Clothing item added", color: "green" })
+    toast.add({ title: isEditing ?"Clothing item updated" :"Clothing item added", color:"green" })
     await refreshClothingItems()
     await refresh()
   } catch (error: any) {
-    clothingError.value = error?.statusMessage || error?.data?.statusMessage || "Could not save this clothing item."
+    clothingError.value = error?.statusMessage || error?.data?.statusMessage ||"Could not save this clothing item."
   } finally {
     clothingSaveLoading.value = false
   }
@@ -525,14 +525,14 @@ async function createClothingItem(attachToCurrentOutfit = true) {
 
 function normalizeClothingLabel(label: string) {
   const normalized = label.trim().toLowerCase()
-  return clothingLabelOptions.find((option) => option.toLowerCase() === normalized) || ""
+  return clothingLabelOptions.find((option) => option.toLowerCase() === normalized) ||""
 }
 
 function clothingNameFromFileName(fileName: string) {
   return fileName
-    .replace(/\.[^.]+$/, "")
-    .replace(/[_-]+/g, " ")
-    .replace(/\s+/g, " ")
+    .replace(/\.[^.]+$/,"")
+    .replace(/[_-]+/g,"")
+    .replace(/\s+/g,"")
     .trim()
     .replace(/\b\w/g, (letter) => letter.toUpperCase())
 }
@@ -544,7 +544,7 @@ async function uploadBatchClothingImages(event: Event) {
     return
   }
 
-  batchClothesError.value = ""
+  batchClothesError.value =""
   batchClothesUploadLoading.value = true
 
   try {
@@ -554,25 +554,25 @@ async function uploadBatchClothingImages(event: Event) {
       const body = new FormData()
       body.append("file", file)
       const result = await $fetch<{ imageUrl: string }>("/api/clothes/upload", {
-        method: "POST",
+        method:"POST",
         body
       })
       uploaded.push({
-        name: clothingNameFromFileName(file.name) || "New clothing piece",
-        label: "Dress",
-        color: "",
+        name: clothingNameFromFileName(file.name) ||"New clothing piece",
+        label:"Dress",
+        color:"",
         imageUrl: result.imageUrl,
-        notes: ""
+        notes:""
       })
     }
 
     batchImageDrafts.value = [...batchImageDrafts.value, ...uploaded]
-    toast.add({ title: "Uploaded " + uploaded.length + " images", color: "green" })
+    toast.add({ title:"Uploaded" + uploaded.length +" images", color:"green" })
   } catch (error: any) {
-    batchClothesError.value = error?.statusMessage || error?.data?.statusMessage || "Could not upload these images."
+    batchClothesError.value = error?.statusMessage || error?.data?.statusMessage ||"Could not upload these images."
   } finally {
     batchClothesUploadLoading.value = false
-    input.value = ""
+    input.value =""
   }
 }
 
@@ -586,21 +586,21 @@ async function importBatchClothingItems() {
     return
   }
 
-  batchClothesError.value = ""
+  batchClothesError.value =""
   batchClothesLoading.value = true
 
   try {
     const result = await $fetch<{ count: number, skipped: Array<{ index: number, reason: string }> }>("/api/clothes/batch", {
-      method: "POST",
+      method:"POST",
       body: { items }
     })
-    toast.add({ title: "Imported " + result.count + " clothing pieces", color: "green" })
+    toast.add({ title:"Imported" + result.count +" clothing pieces", color:"green" })
     batchClothesOpen.value = false
     batchImageDrafts.value = []
     await refreshClothingItems()
     await refresh()
   } catch (error: any) {
-    batchClothesError.value = error?.statusMessage || error?.data?.statusMessage || "Could not import these clothing pieces."
+    batchClothesError.value = error?.statusMessage || error?.data?.statusMessage ||"Could not import these clothing pieces."
   } finally {
     batchClothesLoading.value = false
   }
@@ -608,26 +608,26 @@ async function importBatchClothingItems() {
 
 function clearClothingForm() {
   editingClothingItemId.value = null
-  clothingForm.name = ""
-  clothingForm.label = "Dress"
-  clothingForm.color = ""
-  clothingForm.imageUrl = ""
-  clothingForm.notes = ""
+  clothingForm.name =""
+  clothingForm.label ="Dress"
+  clothingForm.color =""
+  clothingForm.imageUrl =""
+  clothingForm.notes =""
 }
 
 function editClothingItem(item: ClothingItem) {
-  clothingError.value = ""
+  clothingError.value =""
   editingClothingItemId.value = item.id
   clothingForm.name = item.name
   clothingForm.label = item.label
-  clothingForm.color = item.color || ""
-  clothingForm.imageUrl = item.imageUrl || ""
-  clothingForm.notes = item.notes || ""
+  clothingForm.color = item.color ||""
+  clothingForm.imageUrl = item.imageUrl ||""
+  clothingForm.notes = item.notes ||""
   showAddClothesForm.value = true
 }
 
 function requestDeleteClothingItem(item: ClothingItem) {
-  clothingError.value = ""
+  clothingError.value =""
   clothingItemPendingDelete.value = item
   clothingDeleteConfirmOpen.value = true
 }
@@ -638,22 +638,22 @@ async function confirmDeleteClothingItem() {
     return
   }
 
-  clothingError.value = ""
+  clothingError.value =""
   clothingDeleteLoading.value = true
 
   try {
-    await $fetch("/api/clothes/" + item.id, { method: "DELETE" })
+    await $fetch("/api/clothes/" + item.id, { method:"DELETE" })
     form.clothingItemIds = form.clothingItemIds.filter((id) => id !== item.id)
     if (editingClothingItemId.value === item.id) {
       clearClothingForm()
     }
-    toast.add({ title: "Clothing item deleted", color: "gray" })
+    toast.add({ title:"Clothing item deleted", color:"gray" })
     await refreshClothingItems()
     await refresh()
     clothingDeleteConfirmOpen.value = false
     clothingItemPendingDelete.value = null
   } catch (error: any) {
-    clothingError.value = error?.statusMessage || error?.data?.statusMessage || "Could not delete this clothing item."
+    clothingError.value = error?.statusMessage || error?.data?.statusMessage ||"Could not delete this clothing item."
   } finally {
     clothingDeleteLoading.value = false
   }
@@ -675,40 +675,40 @@ async function uploadClothingImage(event: Event) {
     return
   }
 
-  clothingError.value = ""
+  clothingError.value =""
   clothingUploadLoading.value = true
 
   try {
     const body = new FormData()
     body.append("file", file)
     const result = await $fetch<{ imageUrl: string }>("/api/clothes/upload", {
-      method: "POST",
+      method:"POST",
       body
     })
     clothingForm.imageUrl = result.imageUrl
   } catch (error: any) {
-    clothingError.value = error?.statusMessage || error?.data?.statusMessage || "Could not upload this image."
+    clothingError.value = error?.statusMessage || error?.data?.statusMessage ||"Could not upload this image."
   } finally {
     clothingUploadLoading.value = false
-    input.value = ""
+    input.value =""
   }
 }
 
 
 async function previewImportEntries() {
-  importError.value = ""
+  importError.value =""
   importPreviewLoading.value = true
 
   try {
     importPreview.value = await $fetch<ImportPreviewResult>("/api/import/preview", {
-      method: "POST",
+      method:"POST",
       body: {
         text: importText.value,
         year: importYear.value
       }
     })
   } catch (error: any) {
-    importError.value = error?.statusMessage || error?.data?.statusMessage || "Could not preview these entries."
+    importError.value = error?.statusMessage || error?.data?.statusMessage ||"Could not preview these entries."
   } finally {
     importPreviewLoading.value = false
   }
@@ -716,7 +716,7 @@ async function previewImportEntries() {
 
 function clearImportPreview() {
   importPreview.value = null
-  importError.value = ""
+  importError.value =""
 }
 
 async function importEntries() {
@@ -732,9 +732,9 @@ async function importEntries() {
       }
     })
 
-    toast.add({ title: "Imported " + result.count + " entries", color: "green" })
+    toast.add({ title:"Imported" + result.count +" entries", color:"green" })
     importOpen.value = false
-    importText.value = ""
+    importText.value =""
     importPreview.value = null
     await refresh()
     await refreshStats()
@@ -779,50 +779,49 @@ function toDateString(year: number, month: number, day: number) {
 </script>
 
 <template>
-  <header class="flex flex-col gap-4 border-b border-stone-300 pb-5 lg:flex-row lg:items-end lg:justify-between">
+  <header class="flex flex-col gap-4  pb-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p class="text-sm font-medium uppercase tracking-wide text-rose-700">
+          <p class="text-sm font-medium uppercase tracking-wide">
             Wardrobe planner
           </p>
-          <h1 class="mt-1 text-3xl font-semibold text-slate-950 sm:text-4xl">
+          <h1 class="mt-1 text-3xl font-semibold  sm:text-4xl">
             Dress Calendar
           </h1>
         </div>
 
         <nav class="flex flex-wrap items-center gap-2" aria-label="Primary navigation">
-          <div class="flex rounded-md border border-stone-300 bg-white p-1 shadow-sm">
-            <button
+          <UButtonGroup>
+            <UButton
               v-for="tab in navTabs"
               :key="tab.key"
               type="button"
-              class="inline-flex cursor-pointer items-center gap-2 rounded px-3 py-2 text-sm font-medium transition"
-              :class="activeTab === tab.key ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-700 hover:bg-stone-100'"
+              :icon="tab.icon"
+              :variant="activeTab === tab.key ? 'solid' : 'outline'"
               @click="goToTab(tab.key)"
             >
-              <UIcon :name="tab.icon" class="h-4 w-4 shrink-0" />
-              <span>{{ tab.label }}</span>
-            </button>
-          </div>
+              {{ tab.label }}
+            </UButton>
+          </UButtonGroup>
 
           <UButton
-            color="white"
+            variant="outline"
             icon="i-heroicons-magnifying-glass"
             :aria-label="searchOpen ? 'Hide search filters' : 'Show search filters'"
             :variant="searchOpen ? 'solid' : 'outline'"
             @click="searchOpen = !searchOpen"
           />
-          <UButton color="rose" icon="i-heroicons-arrow-down-tray" @click="importOpen = true">
+          <UButton icon="i-heroicons-arrow-down-tray" @click="importOpen = true">
             Import
           </UButton>
         </nav>
       </header>
 
-      <section v-if="searchOpen" class="rounded-lg border border-stone-300 bg-white p-4 shadow-sm">
+      <section v-if="searchOpen" class="p-4">
         <div class="grid gap-3 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,0.95fr)_minmax(260px,0.75fr)] lg:items-end">
           <UFormField label="Find exact date">
             <div class="flex gap-2">
               <UInput v-model="searchDate" type="date" class="min-w-0 flex-1" @keyup.enter="runSearch('date')" @blur="runSearch('date')" />
-              <UButton color="rose" icon="i-heroicons-magnifying-glass" :loading="searching" @click="runSearch('date')">
+              <UButton icon="i-heroicons-magnifying-glass" :loading="searching" @click="runSearch('date')">
                 Search date
               </UButton>
             </div>
@@ -831,7 +830,7 @@ function toDateString(year: number, month: number, day: number) {
           <UFormField label="Find month">
             <div class="flex gap-2">
               <UInput v-model="searchMonth" type="month" class="min-w-0 flex-1" @keyup.enter="runSearch('month')" @blur="runSearch('month')" />
-              <UButton color="rose" icon="i-heroicons-calendar-days" :loading="searching" @click="runSearch('month')">
+              <UButton icon="i-heroicons-calendar-days" :loading="searching" @click="runSearch('month')">
                 Search month
               </UButton>
             </div>
@@ -840,7 +839,7 @@ function toDateString(year: number, month: number, day: number) {
           <UFormField label="Find year">
             <div class="flex gap-2">
               <UInput v-model="searchYear" type="number" min="1900" max="2100" class="min-w-24 flex-1" @keyup.enter="runSearch('year')" @blur="runSearch('year')" />
-              <UButton color="rose" icon="i-heroicons-calendar" :loading="searching" @click="runSearch('year')">
+              <UButton icon="i-heroicons-calendar" :loading="searching" @click="runSearch('year')">
                 Search year
               </UButton>
             </div>
@@ -849,7 +848,7 @@ function toDateString(year: number, month: number, day: number) {
           <UFormField label="Find outfit">
             <div class="flex gap-2">
               <UInput v-model="searchText" placeholder="blue gown" class="min-w-0 flex-1" @keyup.enter="runSearch('text')" @blur="searchText.trim() && runSearch('text')" />
-              <UButton color="rose" icon="i-heroicons-magnifying-glass" :loading="searching" :disabled="!searchText.trim()" @click="runSearch('text')">
+              <UButton icon="i-heroicons-magnifying-glass" :loading="searching" :disabled="!searchText.trim()" @click="runSearch('text')">
                 Search outfit
               </UButton>
             </div>
@@ -858,19 +857,19 @@ function toDateString(year: number, month: number, day: number) {
           <UFormField label="Find category">
             <div class="flex gap-2">
               <USelect v-model="searchCategory" :items="categorySearchOptions" class="min-w-0 flex-1" @blur="searchCategory && searchCategory !== 'All categories' && runSearch('category')" />
-              <UButton color="rose" icon="i-heroicons-tag" :loading="searching" :disabled="!searchCategory || searchCategory === 'All categories'" @click="runSearch('category')">
+              <UButton icon="i-heroicons-tag" :loading="searching" :disabled="!searchCategory || searchCategory === 'All categories'" @click="runSearch('category')">
                 Search category
               </UButton>
             </div>
           </UFormField>
         </div>
 
-        <div v-if="searchLabel" class="mt-4 border-t border-stone-200 pt-4">
+        <div v-if="searchLabel" class="mt-4  pt-4">
           <div class="mb-3 flex items-center justify-between gap-3">
-            <p class="text-sm font-medium text-slate-600">
+            <p class="text-sm font-medium">
               {{ searchLabel }}
             </p>
-            <UButton v-if="searchResults.length" color="white" size="xs" @click="clearSearch">
+            <UButton v-if="searchResults.length" variant="outline" size="xs" @click="clearSearch">
               Clear
             </UButton>
           </div>
@@ -880,24 +879,24 @@ function toDateString(year: number, month: number, day: number) {
               v-for="entry in searchResults"
               :key="entry.id"
               type="button"
-              class="rounded-md border border-stone-200 bg-stone-50 p-3 text-left transition hover:border-rose-300 hover:bg-rose-50"
+              class="p-3 text-left transition"
               @click="openSearchResult(entry)"
             >
-              <span class="block text-xs font-semibold text-rose-700">{{ entry.date }}</span>
-              <span class="mt-1 block text-sm font-medium text-slate-950">{{ entry.title }}</span>
+              <span class="block text-xs font-semibold">{{ entry.date }}</span>
+              <span class="mt-1 block text-sm font-medium">{{ entry.title }}</span>
             </button>
           </div>
         </div>
       </section>
 
-      <section v-if="activeTab === 'insight'" class="overflow-hidden rounded-lg border border-stone-300 bg-white shadow-sm">
-        <div class="border-b border-stone-200 bg-stone-50 px-4 py-4">
+      <section v-if="activeTab === 'insight'" class="overflow-hidden">
+        <div class="px-4 py-4">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p class="text-xs font-semibold uppercase tracking-wide text-rose-700">Insights</p>
-              <h2 class="mt-1 text-xl font-semibold text-slate-950">Wardrobe stats</h2>
+              <p class="text-xs font-semibold uppercase tracking-wide">Insights</p>
+              <h2 class="mt-1 text-xl font-semibold">Wardrobe stats</h2>
             </div>
-            <UButton color="white" size="xs" icon="i-heroicons-sparkles" :loading="normalizingCategories" :disabled="!stats?.uncategorized" @click="normalizeCategories">
+            <UButton variant="outline" size="xs" icon="i-heroicons-sparkles" :loading="normalizingCategories" :disabled="!stats?.uncategorized" @click="normalizeCategories">
               Classify uncategorized
             </UButton>
           </div>
@@ -905,82 +904,82 @@ function toDateString(year: number, month: number, day: number) {
 
         <div class="p-4">
           <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div class="rounded-md border border-rose-200 bg-rose-50 p-4">
+            <div class="p-4">
               <div class="flex items-center justify-between gap-3">
-                <p class="text-xs font-semibold uppercase tracking-wide text-rose-700">Entries</p>
-                <UIcon name="i-heroicons-calendar-days" class="h-5 w-5 text-rose-700" />
+                <p class="text-xs font-semibold uppercase tracking-wide">Entries</p>
+                <UIcon name="i-heroicons-calendar-days" class="h-5 w-5" />
               </div>
-              <p class="mt-3 text-3xl font-semibold text-slate-950">{{ stats?.totalEntries || 0 }}</p>
-              <p class="mt-1 text-sm text-slate-600">Saved outfit days</p>
+              <p class="mt-3 text-3xl font-semibold">{{ stats?.totalEntries || 0 }}</p>
+              <p class="mt-1 text-sm">Saved outfit days</p>
             </div>
 
-            <div class="rounded-md border border-emerald-200 bg-emerald-50 p-4">
+            <div class="p-4">
               <div class="flex items-center justify-between gap-3">
-                <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Unique outfits</p>
-                <UIcon name="i-heroicons-swatch" class="h-5 w-5 text-emerald-700" />
+                <p class="text-xs font-semibold uppercase tracking-wide">Unique outfits</p>
+                <UIcon name="i-heroicons-swatch" class="h-5 w-5" />
               </div>
-              <p class="mt-3 text-3xl font-semibold text-slate-950">{{ stats?.uniqueOutfits || 0 }}</p>
-              <p class="mt-1 text-sm text-slate-600">Distinct outfit names</p>
+              <p class="mt-3 text-3xl font-semibold">{{ stats?.uniqueOutfits || 0 }}</p>
+              <p class="mt-1 text-sm">Distinct outfit names</p>
             </div>
 
-            <div class="rounded-md border border-sky-200 bg-sky-50 p-4">
+            <div class="p-4">
               <div class="flex items-center justify-between gap-3">
-                <p class="text-xs font-semibold uppercase tracking-wide text-sky-700">This year</p>
-                <UIcon name="i-heroicons-chart-bar" class="h-5 w-5 text-sky-700" />
+                <p class="text-xs font-semibold uppercase tracking-wide">This year</p>
+                <UIcon name="i-heroicons-chart-bar" class="h-5 w-5" />
               </div>
-              <p class="mt-3 text-3xl font-semibold text-slate-950">{{ stats?.wornThisYear || 0 }}</p>
-              <p class="mt-1 text-sm text-slate-600">Entries in the current year</p>
+              <p class="mt-3 text-3xl font-semibold">{{ stats?.wornThisYear || 0 }}</p>
+              <p class="mt-1 text-sm">Entries in the current year</p>
             </div>
 
-            <div class="rounded-md border border-amber-200 bg-amber-50 p-4">
+            <div class="p-4">
               <div class="flex items-center justify-between gap-3">
-                <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Uncategorized</p>
-                <UIcon name="i-heroicons-tag" class="h-5 w-5 text-amber-700" />
+                <p class="text-xs font-semibold uppercase tracking-wide">Uncategorized</p>
+                <UIcon name="i-heroicons-tag" class="h-5 w-5" />
               </div>
-              <p class="mt-3 text-3xl font-semibold text-slate-950">{{ stats?.uncategorized || 0 }}</p>
-              <p class="mt-1 text-sm text-slate-600">Ready for cleanup</p>
+              <p class="mt-3 text-3xl font-semibold">{{ stats?.uncategorized || 0 }}</p>
+              <p class="mt-1 text-sm">Ready for cleanup</p>
             </div>
           </div>
 
           <div class="mt-4 grid gap-4 lg:grid-cols-3">
-            <div class="rounded-md border border-stone-200 p-4">
+            <div class="p-4">
               <div class="mb-3 flex items-center gap-2">
-                <UIcon name="i-heroicons-arrow-trending-up" class="h-5 w-5 text-rose-700" />
-                <p class="text-sm font-semibold text-slate-800">Most worn</p>
+                <UIcon name="i-heroicons-arrow-trending-up" class="h-5 w-5" />
+                <p class="text-sm font-semibold">Most worn</p>
               </div>
               <div class="space-y-2">
-                <div v-for="item in stats?.mostWorn" :key="item.title" class="rounded-md bg-stone-50 px-3 py-2">
+                <div v-for="item in stats?.mostWorn" :key="item.title" class="px-3 py-2">
                   <div class="flex items-start justify-between gap-3">
-                    <p class="text-sm font-medium text-slate-950">{{ item.title }}</p>
-                    <UBadge color="rose" variant="soft">{{ item.count }}</UBadge>
+                    <p class="text-sm font-medium">{{ item.title }}</p>
+                    <UBadge variant="soft">{{ item.count }}</UBadge>
                   </div>
-                  <p class="mt-1 text-xs text-slate-500">Last worn {{ item.lastWorn }}</p>
+                  <p class="mt-1 text-xs">Last worn {{ item.lastWorn }}</p>
                 </div>
               </div>
             </div>
 
-            <div class="rounded-md border border-stone-200 p-4">
+            <div class="p-4">
               <div class="mb-3 flex items-center gap-2">
-                <UIcon name="i-heroicons-squares-2x2" class="h-5 w-5 text-rose-700" />
-                <p class="text-sm font-semibold text-slate-800">Categories</p>
+                <UIcon name="i-heroicons-squares-2x2" class="h-5 w-5" />
+                <p class="text-sm font-semibold">Categories</p>
               </div>
               <div class="space-y-2">
-                <div v-for="item in stats?.categories" :key="item.category" class="flex items-center justify-between rounded-md bg-stone-50 px-3 py-2">
-                  <span class="text-sm font-medium text-slate-700">{{ item.category }}</span>
-                  <UBadge color="gray" variant="soft">{{ item.count }}</UBadge>
+                <div v-for="item in stats?.categories" :key="item.category" class="flex items-center justify-between   px-3 py-2">
+                  <span class="text-sm font-medium">{{ item.category }}</span>
+                  <UBadge color="neutral" variant="soft">{{ item.count }}</UBadge>
                 </div>
               </div>
             </div>
 
-            <div class="rounded-md border border-stone-200 p-4">
+            <div class="p-4">
               <div class="mb-3 flex items-center gap-2">
-                <UIcon name="i-heroicons-archive-box" class="h-5 w-5 text-rose-700" />
-                <p class="text-sm font-semibold text-slate-800">Not worn this year</p>
+                <UIcon name="i-heroicons-archive-box" class="h-5 w-5" />
+                <p class="text-sm font-semibold">Not worn this year</p>
               </div>
               <div class="space-y-2">
-                <div v-for="item in stats?.notWornThisYear" :key="item.title" class="rounded-md bg-stone-50 px-3 py-2">
-                  <p class="text-sm font-medium text-slate-950">{{ item.title }}</p>
-                  <p class="mt-1 text-xs text-slate-500">Last worn {{ item.lastWorn }}</p>
+                <div v-for="item in stats?.notWornThisYear" :key="item.title" class="px-3 py-2">
+                  <p class="text-sm font-medium">{{ item.title }}</p>
+                  <p class="mt-1 text-xs">Last worn {{ item.lastWorn }}</p>
                 </div>
               </div>
             </div>
@@ -989,53 +988,50 @@ function toDateString(year: number, month: number, day: number) {
       </section>
 
       <div v-if="activeTab === 'wardrobe'" class="grid gap-6" :class="showAddClothesForm ? 'lg:grid-cols-[minmax(0,1fr)_380px]' : 'lg:grid-cols-1'">
-        <section class="rounded-lg border border-stone-300 bg-white p-4 shadow-sm">
+        <section class="p-4">
           <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p class="text-xs font-semibold uppercase tracking-wide text-rose-700">Wardrobe</p>
-              <h2 class="mt-1 text-xl font-semibold text-slate-950">Clothing pieces</h2>
+              <p class="text-xs font-semibold uppercase tracking-wide">Wardrobe</p>
+              <h2 class="mt-1 text-xl font-semibold">Clothing pieces</h2>
             </div>
             <div class="flex flex-wrap items-center gap-2">
               <UButton
                 v-if="!showAddClothesForm"
                 type="button"
                 icon="i-heroicons-plus"
-                class="bg-rose-600 text-white hover:bg-rose-700"
                 @click="clearClothingForm(); showAddClothesForm = true"
               >
                 Add clothes
               </UButton>
               <UButton
                 type="button"
-                color="white"
+                variant="outline"
                 icon="i-heroicons-photo"
                 @click="batchClothesOpen = true"
               >
                 Batch upload
               </UButton>
-              <div class="flex rounded-md border border-stone-300 bg-white p-1" aria-label="Wardrobe view mode">
-                <button
+              <UButtonGroup aria-label="Wardrobe view mode">
+                <UButton
                   type="button"
-                  class="inline-flex cursor-pointer items-center gap-1.5 rounded px-2.5 py-1.5 text-sm font-medium transition"
-                  :class="wardrobeViewMode === 'grid' ? 'bg-rose-700 text-white shadow-sm' : 'text-slate-600 hover:bg-stone-100 hover:text-slate-950'"
+                  icon="i-heroicons-squares-2x2"
+                  :variant="wardrobeViewMode === 'grid' ? 'solid' : 'outline'"
                   aria-label="Show wardrobe as grid"
                   @click="wardrobeViewMode = 'grid'"
                 >
-                  <UIcon name="i-heroicons-squares-2x2" class="h-4 w-4 shrink-0" />
-                  <span>Grid</span>
-                </button>
-                <button
+                  Grid
+                </UButton>
+                <UButton
                   type="button"
-                  class="inline-flex cursor-pointer items-center gap-1.5 rounded px-2.5 py-1.5 text-sm font-medium transition"
-                  :class="wardrobeViewMode === 'list' ? 'bg-rose-700 text-white shadow-sm' : 'text-slate-600 hover:bg-stone-100 hover:text-slate-950'"
+                  icon="i-heroicons-list-bullet"
+                  :variant="wardrobeViewMode === 'list' ? 'solid' : 'outline'"
                   aria-label="Show wardrobe as list"
                   @click="wardrobeViewMode = 'list'"
                 >
-                  <UIcon name="i-heroicons-list-bullet" class="h-4 w-4 shrink-0" />
-                  <span>List</span>
-                </button>
-              </div>
-              <UBadge color="gray" variant="soft">{{ clothingItems?.length || 0 }} item{{ (clothingItems?.length || 0) === 1 ? '' : 's' }}</UBadge>
+                  List
+                </UButton>
+              </UButtonGroup>
+              <UBadge color="neutral" variant="soft">{{ clothingItems?.length || 0 }} item{{ (clothingItems?.length || 0) === 1 ? '' : 's' }}</UBadge>
             </div>
           </div>
 
@@ -1043,58 +1039,57 @@ function toDateString(year: number, month: number, day: number) {
             <article
               v-for="item in clothingItems"
               :key="item.id"
-              class="overflow-hidden rounded-md border border-stone-200 bg-stone-50 transition hover:border-rose-300 hover:ring-2 hover:ring-rose-100"
+              class="overflow-hidden   transition"
             >
               <button type="button" class="block w-full cursor-pointer text-left" @click="editClothingItem(item)">
-                <div class="flex aspect-square items-center justify-center bg-stone-100">
+                <div class="flex aspect-square items-center justify-center">
                   <img v-if="item.imageUrl" :src="item.imageUrl" alt="" class="h-full w-full object-cover">
-                  <span v-else class="px-3 text-center text-sm font-medium text-slate-500">No image</span>
+                  <span v-else class="px-3 text-center text-sm font-medium">No image</span>
                 </div>
                 <div class="p-3">
                   <div class="flex items-start justify-between gap-2">
-                    <h3 class="min-w-0 truncate text-sm font-semibold text-slate-950">{{ item.name }}</h3>
-                    <UBadge color="rose" variant="soft">{{ item.label }}</UBadge>
+                    <h3 class="min-w-0 truncate text-sm font-semibold">{{ item.name }}</h3>
+                    <UBadge variant="soft">{{ item.label }}</UBadge>
                   </div>
-                  <p v-if="item.color" class="mt-1 text-xs text-slate-500">{{ item.color }}</p>
-                  <p v-if="item.notes" class="mt-2 line-clamp-2 text-xs text-slate-600">{{ item.notes }}</p>
+                  <p v-if="item.color" class="mt-1 text-xs">{{ item.color }}</p>
+                  <p v-if="item.notes" class="mt-2 line-clamp-2 text-xs">{{ item.notes }}</p>
                 </div>
               </button>
             </article>
           </div>
 
-          <div v-else-if="clothingItems?.length" class="overflow-hidden rounded-md border border-stone-200 bg-white">
+          <div v-else-if="clothingItems?.length" class="overflow-hidden">
             <article
               v-for="item in clothingItems"
               :key="item.id"
-              class="border-b border-stone-200 last:border-b-0 hover:bg-stone-50"
             >
               <button type="button" class="flex w-full cursor-pointer items-center gap-3 p-3 text-left" @click="editClothingItem(item)">
-                <div class="h-16 w-16 shrink-0 overflow-hidden rounded-md border border-stone-200 bg-stone-100">
+                <div class="h-16 w-16 shrink-0 overflow-hidden">
                   <img v-if="item.imageUrl" :src="item.imageUrl" alt="" class="h-full w-full object-cover">
-                  <span v-else class="flex h-full w-full items-center justify-center px-2 text-center text-xs font-medium text-slate-500">No image</span>
+                  <span v-else class="flex h-full w-full items-center justify-center px-2 text-center text-xs font-medium">No image</span>
                 </div>
                 <div class="min-w-0 flex-1">
-                  <h3 class="min-w-0 truncate text-sm font-semibold text-slate-950">{{ item.name }}</h3>
-                  <p class="mt-1 text-xs font-medium text-rose-700">{{ item.label }}</p>
-                  <p v-if="item.color" class="mt-1 text-xs text-slate-500">{{ item.color }}</p>
-                  <p v-if="item.notes" class="mt-1 line-clamp-1 text-xs text-slate-600">{{ item.notes }}</p>
+                  <h3 class="min-w-0 truncate text-sm font-semibold">{{ item.name }}</h3>
+                  <p class="mt-1 text-xs font-medium">{{ item.label }}</p>
+                  <p v-if="item.color" class="mt-1 text-xs">{{ item.color }}</p>
+                  <p v-if="item.notes" class="mt-1 line-clamp-1 text-xs">{{ item.notes }}</p>
                 </div>
               </button>
             </article>
           </div>
 
-          <div v-else class="rounded-md border border-dashed border-stone-300 bg-stone-50 p-6 text-center">
-            <p class="text-sm font-medium text-slate-700">No clothing pieces yet</p>
-            <p class="mt-1 text-sm text-slate-500">Open the Add clothes form, then pair pieces into outfit plans.</p>
+          <div v-else class="p-6 text-center">
+            <p class="text-sm font-medium">No clothing pieces yet</p>
+            <p class="mt-1 text-sm">Open the Add clothes form, then pair pieces into outfit plans.</p>
           </div>
         </section>
 
-        <aside v-if="showAddClothesForm" class="rounded-lg border border-stone-300 bg-white p-4 shadow-sm">
+        <aside v-if="showAddClothesForm" class="p-4">
           <div class="mb-4 flex items-center justify-between gap-3">
-            <h2 class="text-lg font-semibold text-slate-950">{{ editingClothingItemId ? "Edit clothes" : "Add clothes" }}</h2>
+            <h2 class="text-lg font-semibold">{{ editingClothingItemId ?"Edit clothes" :"Add clothes" }}</h2>
             <UButton
               type="button"
-              color="white"
+              variant="outline"
               square
               icon="i-heroicons-x-mark"
               aria-label="Close add clothes form"
@@ -1102,17 +1097,17 @@ function toDateString(year: number, month: number, day: number) {
             />
           </div>
 
-          <UAlert v-if="clothingError" color="red" variant="soft" icon="i-heroicons-exclamation-triangle" :title="clothingError" class="mb-4" />
+          <UAlert v-if="clothingError" color="error" variant="soft" icon="i-heroicons-exclamation-triangle" :title="clothingError" class="mb-4" />
 
           <div class="space-y-4">
-            <label class="block cursor-pointer overflow-hidden rounded-md border border-stone-200 bg-white transition hover:border-rose-300 hover:ring-2 hover:ring-rose-100">
-              <div class="relative flex aspect-square items-center justify-center bg-stone-100">
+            <label class="block cursor-pointer overflow-hidden   transition">
+              <div class="relative flex aspect-square items-center justify-center">
                 <img v-if="clothingForm.imageUrl" :src="clothingForm.imageUrl" alt="" class="h-full w-full object-cover">
-                <span v-else class="px-3 text-center text-sm font-medium text-slate-500">
-                  {{ clothingUploadLoading ? "Uploading..." : "Click to add image" }}
+                <span v-else class="px-3 text-center text-sm font-medium">
+                  {{ clothingUploadLoading ?"Uploading..." :"Click to add image" }}
                 </span>
-                <span v-if="clothingForm.imageUrl" class="absolute bottom-2 left-2 rounded bg-white/90 px-2 py-1 text-xs font-medium text-slate-700 shadow-sm">
-                  {{ clothingUploadLoading ? "Uploading..." : "Change image" }}
+                <span v-if="clothingForm.imageUrl" class="absolute bottom-2 left-2   px-2 py-1 text-xs font-medium">
+                  {{ clothingUploadLoading ?"Uploading..." :"Change image" }}
                 </span>
               </div>
               <input type="file" accept="image/*" class="hidden" :disabled="clothingUploadLoading" @change="uploadClothingImage">
@@ -1135,14 +1130,14 @@ function toDateString(year: number, month: number, day: number) {
               <UTextarea v-model="clothingForm.notes" :rows="3" placeholder="Fabric, fit, occasion" class="w-full" />
             </UFormField>
 
-            <UButton type="button" icon="i-heroicons-plus" class="w-full justify-center bg-rose-600 text-white hover:bg-rose-700 disabled:bg-rose-300" :loading="clothingSaveLoading" :disabled="!clothingForm.name.trim()" @click="createClothingItem(false)">
-              {{ editingClothingItemId ? "Save changes" : "Add clothes" }}
+            <UButton type="button" icon="i-heroicons-plus" class="w-full justify-center" :loading="clothingSaveLoading" :disabled="!clothingForm.name.trim()" @click="createClothingItem(false)">
+              {{ editingClothingItemId ?"Save changes" :"Add clothes" }}
             </UButton>
             <UButton
               v-if="editingClothingItemId"
               type="button"
               icon="i-heroicons-trash"
-              class="w-full justify-center bg-red-600 text-white hover:bg-red-700 disabled:bg-red-300"
+              class="w-full justify-center"
               :loading="clothingDeleteLoading"
               @click="deleteEditingClothingItem"
             >
@@ -1153,16 +1148,16 @@ function toDateString(year: number, month: number, day: number) {
       </div>
 
       <div v-if="activeTab === 'calendar'" class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
-        <section class="rounded-lg border border-stone-300 bg-white p-4 shadow-sm">
+        <section class="p-4">
           <div class="mb-4 flex items-center justify-between gap-3">
-            <UButton color="white" square icon="i-heroicons-chevron-left" aria-label="Previous month" @click="moveMonth(-1)" />
+            <UButton variant="outline" square icon="i-heroicons-chevron-left" aria-label="Previous month" @click="moveMonth(-1)" />
             <h2 class="text-xl font-semibold">
               {{ monthLabel }}
             </h2>
-            <UButton color="white" square icon="i-heroicons-chevron-right" aria-label="Next month" @click="moveMonth(1)" />
+            <UButton variant="outline" square icon="i-heroicons-chevron-right" aria-label="Next month" @click="moveMonth(1)" />
           </div>
 
-          <div class="grid grid-cols-7 gap-2 text-center text-xs font-semibold uppercase text-slate-500">
+          <div class="grid grid-cols-7 gap-2 text-center text-xs font-semibold uppercase">
             <span>Sun</span>
             <span>Mon</span>
             <span>Tue</span>
@@ -1178,22 +1173,18 @@ function toDateString(year: number, month: number, day: number) {
               :key="day.date || `blank-${index}`"
               type="button"
               :disabled="!day.isCurrentMonth"
-              class="group relative min-h-28 overflow-visible rounded-md border p-2 text-left transition enabled:hover:border-rose-300 enabled:hover:bg-rose-50 disabled:border-transparent disabled:bg-stone-50"
-              :class="[
-                selectedDate === day.date ? 'border-rose-500 ring-2 ring-rose-200' : 'border-stone-200',
-                entriesByDate.has(day.date) ? 'bg-white' : 'bg-stone-50'
-              ]"
+              class="group relative min-h-28 overflow-visible p-2 text-left transition"
               @click="selectDate(day.date)"
             >
-              <span class="text-sm font-semibold text-slate-800">{{ day.day }}</span>
+              <span class="text-sm font-semibold">{{ day.day }}</span>
               <template v-if="entriesByDate.has(day.date)">
-                <span class="mt-2 block truncate text-sm font-medium text-slate-950">
+                <span class="mt-2 block truncate text-sm font-medium">
                   {{ entriesByDate.get(day.date)?.title }}
                 </span>
-                <span class="mt-1 block truncate text-xs text-slate-500">
+                <span class="mt-1 block truncate text-xs">
                   {{ entriesByDate.get(day.date)?.category || 'Planned' }}
                 </span>
-                <span class="pointer-events-none absolute left-2 right-2 top-9 z-20 hidden rounded-md border border-stone-200 bg-white p-2 text-xs font-medium leading-snug text-slate-950 shadow-lg group-hover:block group-focus-visible:block">
+                <span class="pointer-events-none absolute left-2 right-2 top-9 z-20 hidden   p-2 text-xs font-medium leading-snug   group-hover:block group-focus-visible:block">
                   {{ entriesByDate.get(day.date)?.title }}
                 </span>
               </template>
@@ -1201,9 +1192,9 @@ function toDateString(year: number, month: number, day: number) {
           </div>
         </section>
 
-        <aside class="rounded-lg border border-stone-300 bg-white p-4 shadow-sm">
+        <aside class="p-4">
           <div class="mb-4">
-            <p class="text-sm font-medium text-slate-500">
+            <p class="text-sm font-medium">
               {{ selectedDate }}
             </p>
             <h2 class="text-2xl font-semibold">
@@ -1219,12 +1210,8 @@ function toDateString(year: number, month: number, day: number) {
             <UFormField label="Dress" name="title" required>
               <div class="flex gap-2">
                 <UInput v-model="form.title" placeholder="Blue midi dress with white sandals" class="min-w-0 flex-1" />
-                <select v-model.number="suggestionWindowDays" class="w-28 rounded-md border border-stone-300 bg-white px-2 text-sm text-slate-700">
-                  <option v-for="days in suggestionWindowOptions" :key="days" :value="days">
-                    {{ days }} days
-                  </option>
-                </select>
-                <UButton type="button" color="white" icon="i-heroicons-sparkles" :loading="suggestionLoading" @click="suggestDress">
+                <USelect v-model="suggestionWindowDays" :items="suggestionWindowOptions" class="w-28" />
+                <UButton type="button" variant="outline" icon="i-heroicons-sparkles" :loading="suggestionLoading" @click="suggestDress">
                   Suggest
                 </UButton>
               </div>
@@ -1232,18 +1219,18 @@ function toDateString(year: number, month: number, day: number) {
 
             <UAlert
               v-if="suggestionError"
-              color="amber"
+              color="warning"
               variant="soft"
               icon="i-heroicons-light-bulb"
               :title="suggestionError"
             />
 
-            <div v-if="suggestionResults.length" class="space-y-2 rounded-md border border-stone-200 bg-stone-50 p-3">
+            <div v-if="suggestionResults.length" class="space-y-2   p-3">
               <div class="flex items-center justify-between gap-3">
-                <p class="text-sm font-semibold text-slate-700">
+                <p class="text-sm font-semibold">
                   Suggestions for {{ form.date }}
                 </p>
-                <UButton type="button" color="white" size="xs" icon="i-heroicons-x-mark" @click="clearSuggestions">
+                <UButton type="button" variant="outline" size="xs" icon="i-heroicons-x-mark" @click="clearSuggestions">
                   Clear
                 </UButton>
               </div>
@@ -1251,38 +1238,38 @@ function toDateString(year: number, month: number, day: number) {
                 v-for="suggestion in suggestionResults"
                 :key="suggestion.entry.id"
                 type="button"
-                class="w-full rounded-md border border-stone-200 bg-white p-3 text-left transition hover:border-rose-300 hover:bg-rose-50"
+                class="w-full   p-3 text-left transition"
                 @click="applySuggestion(suggestion.entry)"
               >
-                <span class="block text-sm font-semibold text-slate-950">{{ suggestion.entry.title }}</span>
-                <span class="mt-1 block text-xs text-slate-500">
-                  Last worn {{ suggestion.lastWornDate }} · {{ suggestion.reasons.join(" - ") }}
+                <span class="block text-sm font-semibold">{{ suggestion.entry.title }}</span>
+                <span class="mt-1 block text-xs">
+                  Last worn {{ suggestion.lastWornDate }} · {{ suggestion.reasons.join(" -") }}
                 </span>
               </button>
             </div>
 
             <div class="flex gap-2">
-              <UButton type="button" color="white" icon="i-heroicons-clock" :loading="historyLoading" :disabled="!form.title.trim()" @click="loadOutfitHistory">
+              <UButton type="button" variant="outline" icon="i-heroicons-clock" :loading="historyLoading" :disabled="!form.title.trim()" @click="loadOutfitHistory">
                 Outfit history
               </UButton>
-              <UButton v-if="historyResult" type="button" color="white" icon="i-heroicons-x-mark" @click="historyResult = null">
+              <UButton v-if="historyResult" type="button" variant="outline" icon="i-heroicons-x-mark" @click="historyResult = null">
                 Clear history
               </UButton>
             </div>
 
-            <div v-if="historyResult" class="rounded-md border border-stone-200 bg-stone-50 p-3">
-              <p class="text-sm font-semibold text-slate-700">
-                {{ historyResult.title }} worn {{ historyResult.count }} time{{ historyResult.count === 1 ? "" : "s" }}
+            <div v-if="historyResult" class="p-3">
+              <p class="text-sm font-semibold">
+                {{ historyResult.title }} worn {{ historyResult.count }} time{{ historyResult.count === 1 ?"" :"s" }}
               </p>
-              <div class="mt-2 max-h-40 space-y-1 overflow-auto text-sm text-slate-600">
+              <div class="mt-2 max-h-40 space-y-1 overflow-auto text-sm">
                 <button
                   v-for="entry in historyResult.entries"
                   :key="entry.id"
                   type="button"
-                  class="block w-full rounded px-2 py-1 text-left hover:bg-white"
+                  class="block w-full  px-2 py-1 text-left"
                   @click="openSearchResult(entry)"
                 >
-                  {{ entry.date }} - {{ entry.category || "Uncategorized" }}
+                  {{ entry.date }} - {{ entry.category ||"Uncategorized" }}
                 </button>
               </div>
             </div>
@@ -1301,45 +1288,45 @@ function toDateString(year: number, month: number, day: number) {
               <UInput v-model="form.imageUrl" placeholder="https://..." />
             </UFormField>
 
-            <section class="space-y-3 rounded-md border border-stone-200 bg-stone-50 p-3">
+            <section class="space-y-3   p-3">
               <div class="flex items-start justify-between gap-3">
                 <div>
-                  <h3 class="text-sm font-semibold text-slate-800">Clothing pieces</h3>
-                  <p class="text-xs text-slate-500">Optional pieces that make up this outfit.</p>
+                  <h3 class="text-sm font-semibold">Clothing pieces</h3>
+                  <p class="text-xs">Optional pieces that make up this outfit.</p>
                 </div>
-                <UBadge color="gray" variant="soft">{{ selectedClothingItems.length }} selected</UBadge>
+                <UBadge color="neutral" variant="soft">{{ selectedClothingItems.length }} selected</UBadge>
               </div>
 
               <div v-if="selectedClothingItems.length" class="grid grid-cols-2 gap-2 sm:grid-cols-3">
                 <div
                   v-for="item in selectedClothingItems"
                   :key="item.id"
-                  class="overflow-hidden rounded-md border border-stone-200 bg-white"
+                  class="overflow-hidden"
                 >
-                  <div class="flex aspect-square items-center justify-center bg-stone-100">
+                  <div class="flex aspect-square items-center justify-center">
                     <img v-if="item.imageUrl" :src="item.imageUrl" alt="" class="h-full w-full object-cover">
-                    <span v-else class="px-2 text-center text-xs font-medium text-slate-500">No image</span>
+                    <span v-else class="px-2 text-center text-xs font-medium">No image</span>
                   </div>
                   <div class="p-2">
-                    <p class="truncate text-xs font-semibold text-slate-800">{{ item.name }}</p>
-                    <p class="truncate text-xs text-slate-500">{{ item.label }}</p>
+                    <p class="truncate text-xs font-semibold">{{ item.name }}</p>
+                    <p class="truncate text-xs">{{ item.label }}</p>
                   </div>
                 </div>
               </div>
 
-              <div v-if="clothingItems?.length" class="max-h-36 space-y-1 overflow-auto rounded-md border border-stone-200 bg-white p-2">
+              <div v-if="clothingItems?.length" class="max-h-36 space-y-1 overflow-auto   p-2">
                 <label
                   v-for="item in clothingItems"
                   :key="item.id"
-                  class="flex cursor-pointer items-center gap-2 rounded px-2 py-1 text-sm hover:bg-stone-50"
+                  class="flex cursor-pointer items-center gap-2  px-2 py-1 text-sm"
                 >
-                  <input v-model="form.clothingItemIds" type="checkbox" :value="item.id" class="h-4 w-4 accent-rose-600">
-                  <span class="min-w-0 flex-1 truncate text-slate-700">{{ item.name }}</span>
-                  <span class="shrink-0 text-xs text-slate-500">{{ item.label }}</span>
+                  <input v-model="form.clothingItemIds" type="checkbox" :value="item.id" class="h-4 w-4">
+                  <span class="min-w-0 flex-1 truncate">{{ item.name }}</span>
+                  <span class="shrink-0 text-xs">{{ item.label }}</span>
                 </label>
               </div>
 
-              <UAlert v-if="clothingError" color="red" variant="soft" icon="i-heroicons-exclamation-triangle" :title="clothingError" />
+              <UAlert v-if="clothingError" color="error" variant="soft" icon="i-heroicons-exclamation-triangle" :title="clothingError" />
 
               <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <UFormField label="Piece name">
@@ -1357,11 +1344,11 @@ function toDateString(year: number, month: number, day: number) {
               </div>
 
               <div class="flex flex-wrap items-center gap-2">
-                <label class="inline-flex cursor-pointer items-center gap-2 rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-stone-50">
-                  <span>{{ clothingUploadLoading ? "Uploading..." : "Upload image" }}</span>
+                <label class="inline-flex cursor-pointer items-center gap-2   px-3 py-2 text-sm font-medium">
+                  <span>{{ clothingUploadLoading ?"Uploading..." :"Upload image" }}</span>
                   <input type="file" accept="image/*" class="hidden" :disabled="clothingUploadLoading" @change="uploadClothingImage">
                 </label>
-                <UButton type="button" color="white" icon="i-heroicons-plus" :loading="clothingSaveLoading" :disabled="!clothingForm.name.trim()" @click="createClothingItem">
+                <UButton type="button" variant="outline" icon="i-heroicons-plus" :loading="clothingSaveLoading" :disabled="!clothingForm.name.trim()" @click="createClothingItem">
                   Add piece
                 </UButton>
               </div>
@@ -1371,17 +1358,17 @@ function toDateString(year: number, month: number, day: number) {
               <UTextarea v-model="form.notes" :rows="4" placeholder="Accessories, shoes, reminders" />
             </UFormField>
 
-            <div v-if="form.imageUrl" class="overflow-hidden rounded-md border border-stone-200">
+            <div v-if="form.imageUrl" class="overflow-hidden">
               <img :src="form.imageUrl" alt="" class="aspect-[4/3] w-full object-cover">
             </div>
 
-            <UAlert v-if="saveError" color="red" variant="soft" icon="i-heroicons-exclamation-triangle" :title="saveError" />
+            <UAlert v-if="saveError" color="error" variant="soft" icon="i-heroicons-exclamation-triangle" :title="saveError" />
 
             <div class="flex gap-2">
-              <UButton type="submit" color="rose" icon="i-heroicons-check" :loading="saveLoading">
+              <UButton type="submit" icon="i-heroicons-check" :loading="saveLoading">
                 Save
               </UButton>
-              <UButton v-if="selectedEntry || editingEntryId" type="button" color="white" icon="i-heroicons-trash" :loading="deleteLoading" @click="requestDeleteDress">
+              <UButton v-if="selectedEntry || editingEntryId" type="button" variant="outline" icon="i-heroicons-trash" :loading="deleteLoading" @click="requestDeleteDress">
                 Delete
               </UButton>
             </div>
@@ -1397,15 +1384,15 @@ function toDateString(year: number, month: number, day: number) {
         <div class="space-y-4">
           <UAlert
             v-if="batchClothesError"
-            color="red"
+            color="error"
             variant="soft"
             icon="i-heroicons-exclamation-triangle"
             :title="batchClothesError"
           />
 
-          <label class="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-stone-300 bg-stone-50 px-4 py-5 text-sm font-medium text-slate-700 transition hover:border-rose-300 hover:bg-rose-50">
-            <UIcon name="i-heroicons-photo" class="h-5 w-5 text-rose-700" />
-            <span>{{ batchClothesUploadLoading ? "Uploading images..." : "Choose multiple images" }}</span>
+          <label class="flex cursor-pointer items-center justify-center gap-2   px-4 py-5 text-sm font-medium  transition">
+            <UIcon name="i-heroicons-photo" class="h-5 w-5" />
+            <span>{{ batchClothesUploadLoading ?"Uploading images..." :"Choose multiple images" }}</span>
             <input
               type="file"
               accept="image/*"
@@ -1420,9 +1407,9 @@ function toDateString(year: number, month: number, day: number) {
             <div
               v-for="(draft, index) in batchImageDrafts"
               :key="draft.imageUrl"
-              class="grid gap-3 rounded-md border border-stone-200 bg-white p-3 sm:grid-cols-[96px_minmax(0,1fr)]"
+              class="grid gap-3   p-3 sm:grid-cols-[96px_minmax(0,1fr)]"
             >
-              <div class="overflow-hidden rounded-md border border-stone-200 bg-stone-100">
+              <div class="overflow-hidden">
                 <img :src="draft.imageUrl" alt="" class="aspect-square h-full w-full object-cover">
               </div>
               <div class="space-y-3">
@@ -1442,7 +1429,7 @@ function toDateString(year: number, month: number, day: number) {
                     <UInput v-model="draft.notes" class="w-full" />
                   </UFormField>
                   <div class="flex items-end">
-                    <UButton type="button" color="white" icon="i-heroicons-x-mark" @click="removeBatchImageDraft(index)">
+                    <UButton type="button" variant="outline" icon="i-heroicons-x-mark" @click="removeBatchImageDraft(index)">
                       Remove
                     </UButton>
                   </div>
@@ -1451,7 +1438,7 @@ function toDateString(year: number, month: number, day: number) {
             </div>
           </div>
 
-          <div v-if="!batchImageDrafts.length" class="rounded-md border border-stone-200 bg-white p-3 text-sm text-slate-500">
+          <div v-if="!batchImageDrafts.length" class="p-3 text-sm">
             Select images to create editable clothing-piece drafts.
           </div>
         </div>
@@ -1459,13 +1446,12 @@ function toDateString(year: number, month: number, day: number) {
 
       <template #footer>
         <div class="flex justify-end gap-2">
-          <UButton color="white" :disabled="batchClothesLoading" @click="batchClothesOpen = false">
+          <UButton variant="outline" :disabled="batchClothesLoading" @click="batchClothesOpen = false">
             Cancel
           </UButton>
           <UButton
             type="button"
             icon="i-heroicons-arrow-up-tray"
-            class="bg-rose-600 text-white hover:bg-rose-700 disabled:bg-rose-300"
             :loading="batchClothesLoading"
             :disabled="!validBatchClothes.length"
             @click="importBatchClothingItems"
@@ -1485,7 +1471,7 @@ function toDateString(year: number, month: number, day: number) {
         <div class="space-y-4">
           <UAlert
             v-if="importError"
-            color="red"
+            color="error"
             variant="soft"
             icon="i-heroicons-exclamation-triangle"
             :title="importError"
@@ -1497,22 +1483,22 @@ function toDateString(year: number, month: number, day: number) {
 
           <UTextarea v-model="importText" :rows="10" placeholder="WFH — 13/05/2025&#10;Blue dress — 08/12/2020&#10;Black wrap dress — 12/05/2026" />
 
-          <div v-if="importPreview" class="rounded-md border border-stone-200 bg-stone-50 p-3 text-sm">
+          <div v-if="importPreview" class="p-3 text-sm">
             <div class="mb-3 flex items-center justify-between gap-3">
-              <p class="font-semibold text-slate-700">Import preview</p>
-              <UButton color="white" size="xs" icon="i-heroicons-x-mark" @click="clearImportPreview">Clear</UButton>
+              <p class="font-semibold">Import preview</p>
+              <UButton variant="outline" size="xs" icon="i-heroicons-x-mark" @click="clearImportPreview">Clear</UButton>
             </div>
             <div class="grid gap-2 sm:grid-cols-3">
-              <UBadge color="green">{{ importPreview.count }} importable</UBadge>
-              <UBadge color="gray">{{ importPreview.skippedCount }} skipped</UBadge>
-              <UBadge color="red">{{ importPreview.invalidCount }} invalid</UBadge>
+              <UBadge color="success">{{ importPreview.count }} importable</UBadge>
+              <UBadge color="neutral">{{ importPreview.skippedCount }} skipped</UBadge>
+              <UBadge color="error">{{ importPreview.invalidCount }} invalid</UBadge>
             </div>
             <div v-if="importPreview.entries.length" class="mt-3 max-h-32 overflow-auto">
-              <p v-for="entry in importPreview.entries.slice(0, 8)" :key="entry.date + entry.title" class="text-slate-600">
+              <p v-for="entry in importPreview.entries.slice(0, 8)" :key="entry.date + entry.title">
                 {{ entry.date }} - {{ entry.title }}
               </p>
             </div>
-            <div v-if="importPreview.invalid.length" class="mt-3 max-h-24 overflow-auto text-red-700">
+            <div v-if="importPreview.invalid.length" class="mt-3 max-h-24 overflow-auto">
               <p v-for="item in importPreview.invalid.slice(0, 5)" :key="item.line">{{ item.line }} - {{ item.reason }}</p>
             </div>
           </div>
@@ -1521,14 +1507,14 @@ function toDateString(year: number, month: number, day: number) {
 
       <template #footer>
         <div class="flex justify-end gap-2">
-          <UButton color="white" icon="i-heroicons-eye" :loading="importPreviewLoading" :disabled="!importText.trim()" @click="previewImportEntries">
+          <UButton variant="outline" icon="i-heroicons-eye" :loading="importPreviewLoading" :disabled="!importText.trim()" @click="previewImportEntries">
             Preview
           </UButton>
-          <UButton color="white" :disabled="importing" @click="importOpen = false">
+          <UButton variant="outline" :disabled="importing" @click="importOpen = false">
             Cancel
           </UButton>
           <UButton
-            color="rose"
+           
             icon="i-heroicons-arrow-down-tray"
             :loading="importing"
             :disabled="!importText.trim()"
@@ -1547,29 +1533,29 @@ function toDateString(year: number, month: number, day: number) {
     >
       <template #body>
         <div class="space-y-4">
-          <div class="overflow-hidden rounded-md border border-stone-200 bg-white">
-            <div v-if="dressPendingDelete?.imageUrl" class="aspect-[4/3] bg-stone-100">
+          <div class="overflow-hidden">
+            <div v-if="dressPendingDelete?.imageUrl" class="aspect-[4/3]">
               <img :src="dressPendingDelete.imageUrl" alt="" class="h-full w-full object-cover">
             </div>
             <div class="p-3">
-              <p class="text-sm font-semibold text-slate-950">
-                {{ dressPendingDelete?.title || "This outfit" }}
+              <p class="text-sm font-semibold">
+                {{ dressPendingDelete?.title ||"This outfit" }}
               </p>
               <div class="mt-2 flex flex-wrap items-center gap-2">
-                <UBadge color="gray" variant="soft">{{ dressPendingDelete?.date }}</UBadge>
-                <UBadge color="rose" variant="soft">{{ dressPendingDelete?.category }}</UBadge>
+                <UBadge color="neutral" variant="soft">{{ dressPendingDelete?.date }}</UBadge>
+                <UBadge variant="soft">{{ dressPendingDelete?.category }}</UBadge>
               </div>
             </div>
           </div>
 
-          <div class="rounded-md border border-red-200 bg-red-50 p-3">
+          <div class="p-3">
             <div class="flex items-start gap-3">
-              <UIcon name="i-heroicons-exclamation-triangle" class="mt-0.5 h-5 w-5 shrink-0 text-red-700" />
+              <UIcon name="i-heroicons-exclamation-triangle" class="mt-0.5 h-5 w-5 shrink-0" />
               <div class="min-w-0">
-                <p class="text-sm font-semibold text-red-900">
+                <p class="text-sm font-semibold">
                   Delete this outfit?
                 </p>
-                <p class="mt-1 text-sm text-red-800">
+                <p class="mt-1 text-sm">
                   This action cannot be undone.
                 </p>
               </div>
@@ -1583,7 +1569,6 @@ function toDateString(year: number, month: number, day: number) {
           <UButton
             type="button"
             icon="i-heroicons-trash"
-            class="bg-red-600 text-white hover:bg-red-700 disabled:bg-red-300"
             :loading="deleteLoading"
             @click="confirmDeleteDress"
           >
@@ -1600,14 +1585,14 @@ function toDateString(year: number, month: number, day: number) {
     >
       <template #body>
         <div class="space-y-4">
-          <div class="rounded-md border border-red-200 bg-red-50 p-3">
+          <div class="p-3">
             <div class="flex items-start gap-3">
-              <UIcon name="i-heroicons-exclamation-triangle" class="mt-0.5 h-5 w-5 shrink-0 text-red-700" />
+              <UIcon name="i-heroicons-exclamation-triangle" class="mt-0.5 h-5 w-5 shrink-0" />
               <div class="min-w-0">
-                <p class="text-sm font-semibold text-red-900">
-                  Delete {{ clothingItemPendingDelete?.name || "this clothing piece" }}?
+                <p class="text-sm font-semibold">
+                  Delete {{ clothingItemPendingDelete?.name ||"this clothing piece" }}?
                 </p>
-                <p class="mt-1 text-sm text-red-800">
+                <p class="mt-1 text-sm">
                   This action cannot be undone.
                 </p>
               </div>
@@ -1621,7 +1606,6 @@ function toDateString(year: number, month: number, day: number) {
           <UButton
             type="button"
             icon="i-heroicons-trash"
-            class="bg-red-600 text-white hover:bg-red-700 disabled:bg-red-300"
             :loading="clothingDeleteLoading"
             @click="confirmDeleteClothingItem"
           >
@@ -1632,7 +1616,7 @@ function toDateString(year: number, month: number, day: number) {
     </UModal>
 
     <div v-if="pending" class="fixed bottom-4 right-4">
-      <UBadge color="gray">
+      <UBadge color="neutral">
         Loading
       </UBadge>
     </div>

@@ -31,13 +31,15 @@ async function submitRegister() {
 
 <template>
   <section class="flex min-h-[calc(100vh-2.5rem)] w-full items-center justify-center py-8">
-    <div class="grid w-full max-w-md gap-5 rounded-lg border border-stone-300 bg-white p-6 shadow-sm">
-      <div>
-        <p class="text-sm font-medium uppercase tracking-wide text-rose-700">Wardrobe planner</p>
-        <h1 class="mt-1 text-2xl font-semibold text-slate-950">Create account</h1>
-      </div>
+    <UCard class="w-full max-w-md">
+      <template #header>
+        <div>
+          <p>Wardrobe planner</p>
+          <h1>Create account</h1>
+        </div>
+      </template>
 
-      <UAlert v-if="error" color="red" variant="soft" :title="error" />
+      <UAlert v-if="error" color="error" variant="soft" :title="error" />
 
       <UForm :state="{ displayName, email, password }" class="grid w-full gap-4" @submit.prevent="submitRegister">
         <UFormField label="Display name" class="w-full">
@@ -49,19 +51,19 @@ async function submitRegister() {
         <UFormField label="Password" class="w-full">
           <UInput v-model="password" class="w-full" type="password" autocomplete="new-password" required />
         </UFormField>
-        <UButton type="submit" color="rose" class="w-full justify-center" :loading="loading">Create account</UButton>
+        <UButton type="submit" block :loading="loading">Create account</UButton>
       </UForm>
 
-      <UButton color="blue" variant="solid" icon="i-heroicons-globe-alt" class="w-full justify-center" to="/api/auth/google" external>
+      <UButton variant="outline" icon="i-heroicons-globe-alt" block to="/api/auth/google" external>
         Continue with Google
       </UButton>
 
-      <p class="text-center text-sm text-slate-600">
+      <p class="text-center">
         Already have an account?
-        <NuxtLink class="font-medium text-rose-700 hover:text-rose-800" :to="{ path: '/login', query: route.query }">
+        <NuxtLink :to="{ path: '/login', query: route.query }">
           Sign in
         </NuxtLink>
       </p>
-    </div>
+    </UCard>
   </section>
 </template>

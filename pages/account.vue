@@ -72,29 +72,35 @@ async function deleteAccount() {
 
 <template>
   <section class="grid gap-5">
-    <header class="border-b border-stone-300 pb-5">
-      <p class="text-sm font-medium uppercase tracking-wide text-rose-700">Account</p>
-      <h1 class="mt-1 text-3xl font-semibold text-slate-950">Settings</h1>
+    <header>
+      <p>Account</p>
+      <h1>Settings</h1>
     </header>
 
-    <UAlert v-if="error" color="red" variant="soft" :title="error" />
+    <UAlert v-if="error" color="error" variant="soft" :title="error" />
 
     <div class="grid gap-5 lg:grid-cols-2">
-      <section class="rounded-lg border border-stone-300 bg-white p-5 shadow-sm">
-        <h2 class="text-lg font-semibold text-slate-950">Profile</h2>
-        <p class="mt-1 text-sm text-slate-600">{{ data?.user?.email }}</p>
+      <UCard>
+        <template #header>
+          <div>
+            <h2>Profile</h2>
+            <p>{{ data?.user?.email }}</p>
+          </div>
+        </template>
         <div class="mt-4 grid gap-4">
           <UFormField label="Display name">
             <UInput v-model="displayName" />
           </UFormField>
-          <UButton color="rose" class="justify-center" :loading="profileLoading" @click="saveProfile">
+          <UButton block :loading="profileLoading" @click="saveProfile">
             Save profile
           </UButton>
         </div>
-      </section>
+      </UCard>
 
-      <section class="rounded-lg border border-stone-300 bg-white p-5 shadow-sm">
-        <h2 class="text-lg font-semibold text-slate-950">Password</h2>
+      <UCard>
+        <template #header>
+          <h2>Password</h2>
+        </template>
         <div class="mt-4 grid gap-4">
           <UFormField v-if="data?.user?.hasPassword" label="Current password">
             <UInput v-model="currentPassword" type="password" autocomplete="current-password" />
@@ -102,32 +108,36 @@ async function deleteAccount() {
           <UFormField label="New password">
             <UInput v-model="newPassword" type="password" autocomplete="new-password" />
           </UFormField>
-          <UButton color="rose" class="justify-center" :loading="passwordLoading" :disabled="newPassword.length < 8" @click="changePassword">
+          <UButton block :loading="passwordLoading" :disabled="newPassword.length < 8" @click="changePassword">
             {{ data?.user?.hasPassword ? 'Change password' : 'Set password' }}
           </UButton>
         </div>
-      </section>
+      </UCard>
 
-      <section class="rounded-lg border border-stone-300 bg-white p-5 shadow-sm">
-        <h2 class="text-lg font-semibold text-slate-950">Linked accounts</h2>
-        <div class="mt-4 flex items-center justify-between rounded-md bg-stone-50 px-3 py-2">
-          <span class="text-sm font-medium text-slate-700">Google</span>
-          <UBadge :color="data?.user?.linkedProviders.includes('google') ? 'green' : 'gray'" variant="soft">
+      <UCard>
+        <template #header>
+          <h2>Linked accounts</h2>
+        </template>
+        <div class="mt-4 flex items-center justify-between">
+          <span>Google</span>
+          <UBadge :color="data?.user?.linkedProviders.includes('google') ? 'success' : 'neutral'" variant="soft">
             {{ data?.user?.linkedProviders.includes('google') ? 'Linked' : 'Not linked' }}
           </UBadge>
         </div>
-        <UButton class="mt-4 justify-center" color="white" icon="i-heroicons-globe-alt" to="/api/auth/google" external block>
+        <UButton class="mt-4" variant="outline" icon="i-heroicons-globe-alt" to="/api/auth/google" external block>
           Continue with Google
         </UButton>
-      </section>
+      </UCard>
 
-      <section class="rounded-lg border border-red-200 bg-white p-5 shadow-sm">
-        <h2 class="text-lg font-semibold text-red-700">Delete account</h2>
-        <p class="mt-1 text-sm text-slate-600">This removes your account, sessions, linked accounts, wardrobe, calendar entries, and outfit history.</p>
-        <UButton class="mt-4 justify-center" color="red" :loading="deleteLoading" @click="deleteAccount">
+      <UCard>
+        <template #header>
+          <h2>Delete account</h2>
+        </template>
+        <p>This removes your account, sessions, linked accounts, wardrobe, calendar entries, and outfit history.</p>
+        <UButton class="mt-4" color="error" variant="outline" block :loading="deleteLoading" @click="deleteAccount">
           Delete account
         </UButton>
-      </section>
+      </UCard>
     </div>
   </section>
 </template>
