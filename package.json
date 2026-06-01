@@ -6,6 +6,7 @@
     "build": "nuxt build",
     "db:push": "prisma db push",
     "dev": "nuxt dev",
+    "env:check": "tsx scripts/check-env.ts",
     "generate": "nuxt generate",
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate",
