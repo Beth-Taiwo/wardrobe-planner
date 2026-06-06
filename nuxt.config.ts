@@ -1,5 +1,21 @@
+import tailwindcss from '@tailwindcss/vite'
+
 export default defineNuxtConfig({
-  modules: ['@nuxt/ui'],
+  modules: ['shadcn-nuxt'],
+  shadcn: {
+    prefix: '',
+    componentDir: './components/shadcn'
+  },
+  components: [
+    {
+      path: '~/components/ui',
+      pathPrefix: false
+    },
+    {
+      path: '~/components',
+      pathPrefix: false
+    }
+  ],
   devtools: { enabled: true },
   fonts: {
     providers: {
@@ -13,6 +29,9 @@ export default defineNuxtConfig({
   },
   css: ['~/assets/css/main.css'],
   vite: {
+    plugins: [
+      tailwindcss()
+    ],
     server: {
       watch: {
         ignored: ['**/data/**']

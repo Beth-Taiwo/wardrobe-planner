@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { parseDate, type DateValue } from '@internationalized/date'
-import type { FormSubmitEvent } from '#ui/types'
 import { computed, nextTick, reactive, ref } from 'vue'
 import type { ClothingItem, DressEntry } from '~/types/dress'
 
@@ -405,7 +404,7 @@ function moveMonth(offset: number) {
   ))
 }
 
-async function saveDress(event: FormSubmitEvent<DressForm>) {
+async function saveDress() {
   saveError.value =""
   saveLoading.value = true
 

@@ -1,11 +1,55 @@
 @import "tailwindcss";
-@import "@nuxt/ui";
+@import "tw-animate-css";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+}
 
 @layer base {
   :root {
-    --ui-primary: var(--ui-color-teal-600);
-    --ui-secondary: var(--ui-color-amber-600);
-    --ui-radius: 0.5rem;
+    --radius: 0.5rem;
+    --background: #f7f5f1;
+    --foreground: #231f1c;
+    --card: rgba(255, 255, 255, 0.9);
+    --card-foreground: #231f1c;
+    --primary: #0f766e;
+    --primary-foreground: #ffffff;
+    --secondary: #f2ede6;
+    --secondary-foreground: #231f1c;
+    --muted: #f2ede6;
+    --muted-foreground: #6f6258;
+    --accent: #e8f4f1;
+    --accent-foreground: #0f4f49;
+    --destructive: #dc2626;
+    --destructive-foreground: #ffffff;
+    --border: rgba(64, 52, 43, 0.14);
+    --input: rgba(64, 52, 43, 0.2);
+    --ring: #0f766e;
+    --success: #15803d;
+    --warning: #d97706;
+    --warning-foreground: #78350f;
     --wardrobe-bg: #f7f5f1;
     --wardrobe-surface: rgba(255, 255, 255, 0.9);
     --wardrobe-surface-soft: #f2ede6;
@@ -31,12 +75,31 @@
     letter-spacing: 0;
   }
 
+  button,
+  input,
+  select,
+  textarea {
+    letter-spacing: 0;
+  }
+
   a {
     color: var(--wardrobe-accent);
   }
 }
 
 @layer components {
+  .border-default {
+    border-color: var(--border);
+  }
+
+  .text-muted {
+    color: var(--muted-foreground);
+  }
+
+  .hover\:bg-muted:hover {
+    background: var(--muted);
+  }
+
   .app-shell {
     min-height: 100vh;
   }
