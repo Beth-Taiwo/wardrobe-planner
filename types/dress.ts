@@ -22,3 +22,13 @@ export interface DressEntry {
   updatedAt: string
   clothingItems: ClothingItem[]
 }
+
+export interface OutfitPlan {
+  id: string
+  date: string
+  eventName: string
+  prepNotes: string | null
+  createdAt: string
+  updatedAt: string
+  clothingItems: ClothingItem[]
+}

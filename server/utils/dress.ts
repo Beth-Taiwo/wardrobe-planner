@@ -13,6 +13,15 @@ export const dressEntrySchema = z.object({
 
 export type DressEntryInput = z.infer<typeof dressEntrySchema>
 
+export const outfitPlanSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  eventName: z.string().trim().min(1).max(120),
+  prepNotes: z.string().trim().max(1000).optional().nullable(),
+  clothingItemIds: z.array(z.string().trim().min(1)).min(1)
+})
+
+export type OutfitPlanInput = z.infer<typeof outfitPlanSchema>
+
 export interface ImportPreview {
   entries: DressEntryInput[]
   skipped: Array<{ line: string, reason: string }>

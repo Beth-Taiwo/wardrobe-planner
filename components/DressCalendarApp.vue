@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { parseDate, type DateValue } from '@internationalized/date'
 import { computed, nextTick, reactive, ref } from 'vue'
-import type { ClothingItem, DressEntry } from '~/types/dress'
+import type { ClothingItem, DressEntry, OutfitPlan } from '~/types/dress'
 
 interface DressForm {
   date: string
@@ -141,6 +141,11 @@ const { data: stats, refresh: refreshStats } = await useFetch<OutfitStats>("/api
     categories: [],
     notWornThisYear: []
   })
+})
+
+const { data: upcomingPlans } = await useFetch<OutfitPlan[]>("/api/plans", {
+  query: { upcoming: "true", limit: "6" },
+  default: () => []
 })
 
 const form = reactive<DressForm>({
@@ -861,6 +866,9 @@ function toDateString(year: number, month: number, day: number) {
           >
             Search
           </Button>
+          <Button as-child>
+            <NuxtLink to="/plan">Plan outfit</NuxtLink>
+          </Button>
           <Button @click="importOpen = true">
             Import
           </Button>
@@ -954,13 +962,50 @@ function toDateString(year: number, month: number, day: number) {
               <p class="text-xs font-semibold uppercase tracking-wide">Insights</p>
               <h2 class="mt-1 text-xl font-semibold">Wardrobe stats</h2>
             </div>
-            <Button variant="outline" size="sm" :disabled="normalizingCategories || !stats?.uncategorized" @click="normalizeCategories">
-              Classify uncategorized
-            </Button>
+            <div class="flex flex-wrap gap-2">
+              <Button as-child size="sm">
+                <NuxtLink to="/plan">Plan outfit</NuxtLink>
+              </Button>
+              <Button variant="outline" size="sm" :disabled="normalizingCategories || !stats?.uncategorized" @click="normalizeCategories">
+                Classify uncategorized
+              </Button>
+            </div>
           </div>
         </div>
 
         <div class="p-4">
+          <div class="mb-4 app-card p-4">
+            <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p class="text-sm font-semibold">Upcoming plans</p>
+                <p class="text-xs text-muted">Future event outfits saved from planning.</p>
+              </div>
+              <Button as-child variant="outline" size="sm">
+                <NuxtLink to="/plan">New plan</NuxtLink>
+              </Button>
+            </div>
+
+            <div v-if="upcomingPlans?.length" class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              <NuxtLink
+                v-for="plan in upcomingPlans"
+                :key="plan.id"
+                :to="{ path: '/plan', query: { id: plan.id, date: plan.date } }"
+                class="app-clickable block p-3"
+              >
+                <span class="block text-xs font-semibold">{{ plan.date }}</span>
+                <span class="mt-1 block truncate text-sm font-medium">{{ plan.eventName }}</span>
+                <span class="mt-1 block text-xs text-muted">{{ plan.clothingItems.length }} piece{{ plan.clothingItems.length === 1 ? "" : "s" }}</span>
+              </NuxtLink>
+            </div>
+
+            <div v-else class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-dashed border-default p-3">
+              <p class="text-sm text-muted">No upcoming outfit plans yet.</p>
+              <Button as-child size="sm">
+                <NuxtLink to="/plan">Plan outfit</NuxtLink>
+              </Button>
+            </div>
+          </div>
+
           <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div class="app-card p-4">
               <div class="flex items-center justify-between gap-3">

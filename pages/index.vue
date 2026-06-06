@@ -1,5 +1,5 @@
 <script setup lang="ts">
-await navigateTo('/calendar', { replace: true })
+await navigateTo('/insight', { replace: true })
 </script>
 
 <template>

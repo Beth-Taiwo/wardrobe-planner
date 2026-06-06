@@ -24,7 +24,16 @@ const dressEntryInclude = {
   }
 } satisfies Prisma.DressEntryInclude
 
+const outfitPlanInclude = {
+  outfitItems: {
+    include: {
+      clothingItem: true
+    }
+  }
+} satisfies Prisma.OutfitPlanInclude
+
 type DressEntryWithItems = Prisma.DressEntryGetPayload<{ include: typeof dressEntryInclude }>
+type OutfitPlanWithItems = Prisma.OutfitPlanGetPayload<{ include: typeof outfitPlanInclude }>
 type ClothingItemRecord = Prisma.ClothingItemGetPayload<object>
 
 export interface DressEntryFilters {
@@ -48,8 +57,29 @@ interface DressEntryInput {
   clothingItemIds?: string[]
 }
 
+export interface OutfitPlanFilters {
+  id?: string | null
+  date?: string | null
+  upcoming?: boolean
+  limit?: number
+}
+
+interface OutfitPlanInput {
+  date: string
+  eventName: string
+  prepNotes?: string | null
+  clothingItemIds: string[]
+}
+
 export function isUniqueConstraintError(error: unknown) {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002"
+}
+
+export class OutfitPlanItemOwnershipError extends Error {
+  constructor() {
+    super("Choose at least one wardrobe piece you own.")
+    this.name = "OutfitPlanItemOwnershipError"
+  }
 }
 
 export function toClothingItem(row: ClothingItemRecord) {
@@ -78,6 +108,20 @@ export function toDressEntry(row: DressEntryWithItems) {
     createdAt: formatDateTime(row.createdAt),
     updatedAt: formatDateTime(row.updatedAt),
     clothingItems: row.clothingItems
+      .map((item) => toClothingItem(item.clothingItem))
+      .sort((a, b) => a.label.localeCompare(b.label) || a.name.localeCompare(b.name))
+  }
+}
+
+export function toOutfitPlan(row: OutfitPlanWithItems) {
+  return {
+    id: row.id,
+    date: row.date,
+    eventName: row.eventName,
+    prepNotes: row.prepNotes,
+    createdAt: formatDateTime(row.createdAt),
+    updatedAt: formatDateTime(row.updatedAt),
+    clothingItems: row.outfitItems
       .map((item) => toClothingItem(item.clothingItem))
       .sort((a, b) => a.label.localeCompare(b.label) || a.name.localeCompare(b.name))
   }
@@ -157,6 +201,85 @@ export async function listClothingItems(userId: string) {
   })
 
   return rows.map(toClothingItem)
+}
+
+export async function listOutfitPlans(userId: string, filters: OutfitPlanFilters = {}) {
+  const AND: Prisma.OutfitPlanWhereInput[] = [{ userId }]
+
+  if (filters.id) {
+    AND.push({ id: filters.id })
+  }
+
+  if (filters.date && /^\d{4}-\d{2}-\d{2}$/.test(filters.date)) {
+    AND.push({ date: filters.date })
+  }
+
+  if (filters.upcoming) {
+    AND.push({ date: { gte: new Date().toISOString().slice(0, 10) } })
+  }
+
+  const rows = await prisma.outfitPlan.findMany({
+    where: { AND },
+    include: outfitPlanInclude,
+    orderBy: [{ date: "asc" }, { createdAt: "asc" }],
+    take: filters.limit
+  })
+
+  return rows.map(toOutfitPlan)
+}
+
+export async function findOutfitPlan(userId: string, id: string) {
+  const row = await prisma.outfitPlan.findFirst({
+    where: { id, userId },
+    include: outfitPlanInclude
+  })
+
+  return row ? toOutfitPlan(row) : null
+}
+
+export async function saveOutfitPlan(userId: string, id: string | null, plan: OutfitPlanInput) {
+  return prisma.$transaction(async (tx) => {
+    let planId = id
+
+    if (planId) {
+      const result = await tx.outfitPlan.updateMany({
+        where: { id: planId, userId },
+        data: {
+          date: plan.date,
+          eventName: plan.eventName,
+          prepNotes: plan.prepNotes ?? null
+        }
+      })
+
+      if (!result.count) {
+        return null
+      }
+    } else {
+      planId = crypto.randomUUID()
+      await tx.outfitPlan.create({
+        data: {
+          id: planId,
+          userId,
+          date: plan.date,
+          eventName: plan.eventName,
+          prepNotes: plan.prepNotes ?? null
+        }
+      })
+    }
+
+    await syncOutfitPlanItems(tx, userId, planId, plan.clothingItemIds)
+    const row = await tx.outfitPlan.findFirst({
+      where: { id: planId, userId },
+      include: outfitPlanInclude
+    })
+
+    return row ? toOutfitPlan(row) : null
+  })
+}
+
+export async function deleteOutfitPlan(userId: string, id: string) {
+  const result = await prisma.outfitPlan.deleteMany({ where: { id, userId } })
+  return result.count
 }
 
 export async function createClothingItem(userId: string, item: {
@@ -358,6 +481,34 @@ async function syncDressEntryItems(client: PrismaClientOrTransaction, userId: st
     await client.dressEntryItem.create({
       data: {
         dressEntryId,
+        clothingItemId
+      }
+    })
+  }
+}
+
+async function syncOutfitPlanItems(client: PrismaClientOrTransaction, userId: string, outfitPlanId: string, clothingItemIds: string[]) {
+  const uniqueIds = [...new Set(clothingItemIds.filter(Boolean))]
+  await client.outfitPlanItem.deleteMany({ where: { outfitPlanId } })
+
+  if (!uniqueIds.length) {
+    throw new OutfitPlanItemOwnershipError()
+  }
+
+  const ownedItems = await client.clothingItem.findMany({
+    where: { userId, id: { in: uniqueIds } },
+    select: { id: true }
+  })
+  const ownedIds = new Set(ownedItems.map((item) => item.id))
+
+  if (!ownedIds.size || ownedIds.size !== uniqueIds.length) {
+    throw new OutfitPlanItemOwnershipError()
+  }
+
+  for (const clothingItemId of uniqueIds) {
+    await client.outfitPlanItem.create({
+      data: {
+        outfitPlanId,
         clothingItemId
       }
     })

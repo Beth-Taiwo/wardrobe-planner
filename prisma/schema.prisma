@@ -38,6 +38,7 @@ model ClothingItem {
   updatedAt    DateTime         @updatedAt @map("updated_at")
   user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   dressEntries DressEntryItem[]
+  outfitPlans  OutfitPlanItem[]
 
   @@index([userId, label], map: "idx_clothing_items_user_label")
   @@map("clothing_items")
@@ -54,6 +55,32 @@ model DressEntryItem {
   @@map("dress_entry_items")
 }
 
+model OutfitPlan {
+  id          String           @id @db.VarChar(36)
+  userId      String           @map("user_id") @db.VarChar(36)
+  date        String           @db.VarChar(10)
+  eventName   String           @map("event_name") @db.VarChar(255)
+  prepNotes   String?          @map("prep_notes") @db.Text
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  outfitItems OutfitPlanItem[]
+
+  @@index([userId, date], map: "idx_outfit_plans_user_date")
+  @@map("outfit_plans")
+}
+
+model OutfitPlanItem {
+  outfitPlanId  String       @map("outfit_plan_id") @db.VarChar(36)
+  clothingItemId String      @map("clothing_item_id") @db.VarChar(36)
+  createdAt     DateTime     @default(now()) @map("created_at")
+  outfitPlan    OutfitPlan   @relation(fields: [outfitPlanId], references: [id], onDelete: Cascade)
+  clothingItem  ClothingItem @relation(fields: [clothingItemId], references: [id], onDelete: Cascade)
+
+  @@id([outfitPlanId, clothingItemId])
+  @@map("outfit_plan_items")
+}
+
 model User {
   id             String           @id @db.VarChar(36)
   email          String           @db.VarChar(255)
@@ -66,6 +93,7 @@ model User {
   oauthAccounts  OAuthAccount[]
   dressEntries   DressEntry[]
   clothingItems  ClothingItem[]
+  outfitPlans    OutfitPlan[]
   resetTokens    PasswordResetToken[]
 
   @@map("users")
