@@ -1,11 +1,29 @@
 <script setup lang="ts">
-defineProps<{ label?: string }>()
+import type { SeparatorProps } from "reka-ui"
+import type { HTMLAttributes } from "vue"
+import { reactiveOmit } from "@vueuse/core"
+import { Separator } from "reka-ui"
+import { cn } from '~/lib/utils'
+
+const props = withDefaults(defineProps<
+  SeparatorProps & { class?: HTMLAttributes["class"] }
+>(), {
+  orientation: "horizontal",
+  decorative: true,
+})
+
+const delegatedProps = reactiveOmit(props, "class")
 </script>
 
 <template>
-  <div class="flex items-center gap-3 text-xs text-muted-foreground">
-    <div class="h-px flex-1 bg-border" />
-    <span v-if="label">{{ label }}</span>
-    <div class="h-px flex-1 bg-border" />
-  </div>
+  <Separator
+    data-slot="separator"
+    v-bind="delegatedProps"
+    :class="
+      cn(
+        'bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px',
+        props.class,
+      )
+    "
+  />
 </template>

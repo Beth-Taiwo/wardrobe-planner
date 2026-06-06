@@ -1,87 +1,162 @@
-<script setup lang="ts">
-import { CalendarDate, getLocalTimeZone, today } from "@internationalized/date"
+<script lang="ts" setup>
+import type { CalendarRootEmits, CalendarRootProps, DateValue } from "reka-ui"
+import type { HTMLAttributes, Ref } from "vue"
+import type { LayoutTypes } from "."
+import { getLocalTimeZone, today } from "@internationalized/date"
+import { createReusableTemplate, reactiveOmit, useVModel } from "@vueuse/core"
+import { CalendarRoot, useDateFormatter, useForwardPropsEmits } from "reka-ui"
+import { createYear, createYearRange, toDate } from "reka-ui/date"
+import { computed, toRaw } from "vue"
+import { cn } from '~/lib/utils'
+import { NativeSelect, NativeSelectOption } from '~/components/ui/native-select'
+import { CalendarCell, CalendarCellTrigger, CalendarGrid, CalendarGridBody, CalendarGridHead, CalendarGridRow, CalendarHeadCell, CalendarHeader, CalendarHeading, CalendarNextButton, CalendarPrevButton } from "."
 
-interface CalendarDay {
-  day: number
-  month: number
-  year: number
-  toString: () => string
-}
+const props = withDefaults(defineProps<CalendarRootProps & { class?: HTMLAttributes["class"], layout?: LayoutTypes, yearRange?: DateValue[] }>(), {
+  modelValue: undefined,
+  layout: undefined,
+})
+const emits = defineEmits<CalendarRootEmits>()
 
-const props = defineProps<{ modelValue?: any }>()
-const emit = defineEmits<{ "update:modelValue": [value: CalendarDate], "update:placeholder": [value: CalendarDate] }>()
+const delegatedProps = reactiveOmit(props, "class", "layout", "placeholder")
 
-const cursor = ref(props.modelValue || today(getLocalTimeZone()))
+const placeholder = useVModel(props, "placeholder", emits, {
+  passive: true,
+  defaultValue: props.defaultPlaceholder ?? today(getLocalTimeZone()),
+}) as Ref<DateValue>
 
-watch(() => props.modelValue, (value) => {
-  if (value) {
-    cursor.value = value
-  }
+const formatter = useDateFormatter(props.locale ?? "en")
+
+const yearRange = computed(() => {
+  return props.yearRange ?? createYearRange({
+    start: props?.minValue ?? (toRaw(props.placeholder) ?? props.defaultPlaceholder ?? today(getLocalTimeZone()))
+      .cycle("year", -100),
+
+    end: props?.maxValue ?? (toRaw(props.placeholder) ?? props.defaultPlaceholder ?? today(getLocalTimeZone()))
+      .cycle("year", 10),
+  })
 })
 
-const monthLabel = computed(() => new Intl.DateTimeFormat("en", { month: "long", year: "numeric" }).format(new Date(Date.UTC(cursor.value.year, cursor.value.month - 1, 1))))
+const [DefineMonthTemplate, ReuseMonthTemplate] = createReusableTemplate<{ date: DateValue }>()
+const [DefineYearTemplate, ReuseYearTemplate] = createReusableTemplate<{ date: DateValue }>()
 
-const days = computed<CalendarDay[]>(() => {
-  const year = cursor.value.year
-  const month = cursor.value.month
-  const first = new Date(Date.UTC(year, month - 1, 1)).getUTCDay()
-  const total = new Date(Date.UTC(year, month, 0)).getUTCDate()
-  const cells: CalendarDay[] = []
-  for (let i = 0; i < first; i++) {
-    cells.push({ day: 0, month, year, toString: () => "" })
-  }
-  for (let day = 1; day <= total; day++) {
-    cells.push({ day, month, year, toString: () => `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}` })
-  }
-  return cells
-})
-
-function moveMonth(delta: number) {
-  const rawMonth = cursor.value.month + delta
-  const year = cursor.value.year + Math.floor((rawMonth - 1) / 12)
-  const month = ((rawMonth - 1 + 12) % 12) + 1
-  cursor.value = new CalendarDate(year, month, 1)
-  emit("update:placeholder", cursor.value)
-}
-
-function selectDay(day: CalendarDay) {
-  if (!day.day) {
-    return
-  }
-  const value = new CalendarDate(day.year, day.month, day.day)
-  emit("update:modelValue", value)
-}
+const forwarded = useForwardPropsEmits(delegatedProps, emits)
 </script>
 
 <template>
-  <div class="w-full">
-    <div class="mb-3 flex items-center justify-between gap-3">
-      <Button variant="outline" size="xs" @click="moveMonth(-1)">Previous</Button>
-      <p class="text-sm font-semibold">{{ monthLabel }}</p>
-      <Button variant="outline" size="xs" @click="moveMonth(1)">Next</Button>
+  <DefineMonthTemplate v-slot="{ date }">
+    <div class="**:data-[slot=native-select-icon]:right-1">
+      <div class="relative">
+        <div class="absolute inset-0 flex h-full items-center text-sm pl-2 pointer-events-none">
+          {{ formatter.custom(toDate(date), { month: 'short' }) }}
+        </div>
+        <NativeSelect
+          class="text-xs h-8 pr-6 pl-2 text-transparent relative"
+          :model-value="date.month"
+          @change="(e: Event) => {
+            placeholder = placeholder.set({
+              month: Number((e?.target as any)?.value),
+            })
+          }"
+        >
+          <NativeSelectOption v-for="(month) in createYear({ dateObj: date })" :key="month.toString()" :value="month.month" :selected="date.month === month.month">
+            {{ formatter.custom(toDate(month), { month: 'short' }) }}
+          </NativeSelectOption>
+        </NativeSelect>
+      </div>
     </div>
-    <div class="grid grid-cols-7 gap-1 text-center text-xs font-medium text-muted-foreground">
-      <span>Sun</span>
-      <span>Mon</span>
-      <span>Tue</span>
-      <span>Wed</span>
-      <span>Thu</span>
-      <span>Fri</span>
-      <span>Sat</span>
+  </DefineMonthTemplate>
+
+  <DefineYearTemplate v-slot="{ date }">
+    <div class="**:data-[slot=native-select-icon]:right-1">
+      <div class="relative">
+        <div class="absolute inset-0 flex h-full items-center text-sm pl-2 pointer-events-none">
+          {{ formatter.custom(toDate(date), { year: 'numeric' }) }}
+        </div>
+        <NativeSelect
+          class="text-xs h-8 pr-6 pl-2 text-transparent relative"
+          :model-value="date.year"
+          @change="(e: Event) => {
+            placeholder = placeholder.set({
+              year: Number((e?.target as any)?.value),
+            })
+          }"
+        >
+          <NativeSelectOption v-for="(year) in yearRange" :key="year.toString()" :value="year.year" :selected="date.year === year.year">
+            {{ formatter.custom(toDate(year), { year: 'numeric' }) }}
+          </NativeSelectOption>
+        </NativeSelect>
+      </div>
     </div>
-    <div class="mt-1 grid grid-cols-7 gap-1">
-      <button
-        v-for="(day, index) in days"
-        :key="day.toString() || index"
-        type="button"
-        class="min-h-24 rounded-md border border-border bg-background text-left hover:bg-accent disabled:pointer-events-none disabled:bg-muted/50"
-        :disabled="!day.day"
-        @click="selectDay(day)"
-      >
-        <slot name="day" :day="day">
-          <span class="p-2 text-sm">{{ day.day }}</span>
-        </slot>
-      </button>
+  </DefineYearTemplate>
+
+  <CalendarRoot
+    v-slot="{ grid, weekDays, date }"
+    v-bind="forwarded"
+    v-model:placeholder="placeholder"
+    data-slot="calendar"
+    :class="cn('p-3', props.class)"
+  >
+    <CalendarHeader class="pt-0">
+      <nav class="flex items-center gap-1 absolute top-0 inset-x-0 justify-between">
+        <CalendarPrevButton>
+          <slot name="calendar-prev-icon" />
+        </CalendarPrevButton>
+        <CalendarNextButton>
+          <slot name="calendar-next-icon" />
+        </CalendarNextButton>
+      </nav>
+
+      <slot name="calendar-heading" :date="date" :month="ReuseMonthTemplate" :year="ReuseYearTemplate">
+        <template v-if="layout === 'month-and-year'">
+          <div class="flex items-center justify-center gap-1">
+            <ReuseMonthTemplate :date="date" />
+            <ReuseYearTemplate :date="date" />
+          </div>
+        </template>
+        <template v-else-if="layout === 'month-only'">
+          <div class="flex items-center justify-center gap-1">
+            <ReuseMonthTemplate :date="date" />
+            {{ formatter.custom(toDate(date), { year: 'numeric' }) }}
+          </div>
+        </template>
+        <template v-else-if="layout === 'year-only'">
+          <div class="flex items-center justify-center gap-1">
+            {{ formatter.custom(toDate(date), { month: 'short' }) }}
+            <ReuseYearTemplate :date="date" />
+          </div>
+        </template>
+        <template v-else>
+          <CalendarHeading />
+        </template>
+      </slot>
+    </CalendarHeader>
+
+    <div class="flex flex-col gap-y-4 mt-4 sm:flex-row sm:gap-x-4 sm:gap-y-0">
+      <CalendarGrid v-for="month in grid" :key="month.value.toString()">
+        <CalendarGridHead>
+          <CalendarGridRow>
+            <CalendarHeadCell
+              v-for="day in weekDays" :key="day"
+            >
+              {{ day }}
+            </CalendarHeadCell>
+          </CalendarGridRow>
+        </CalendarGridHead>
+        <CalendarGridBody>
+          <CalendarGridRow v-for="(weekDates, index) in month.rows" :key="`weekDate-${index}`" class="mt-2 w-full">
+            <CalendarCell
+              v-for="weekDate in weekDates"
+              :key="weekDate.toString()"
+              :date="weekDate"
+            >
+              <CalendarCellTrigger
+                :day="weekDate"
+                :month="month.value"
+              />
+            </CalendarCell>
+          </CalendarGridRow>
+        </CalendarGridBody>
+      </CalendarGrid>
     </div>
-  </div>
+  </CalendarRoot>
 </template>

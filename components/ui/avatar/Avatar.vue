@@ -1,10 +1,18 @@
 <script setup lang="ts">
-const props = defineProps<{ alt?: string, size?: string }>()
-const initials = computed(() => (props.alt || "U").split(/\s|@/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join(""))
+import type { HTMLAttributes } from "vue"
+import { AvatarRoot } from "reka-ui"
+import { cn } from '~/lib/utils'
+
+const props = defineProps<{
+  class?: HTMLAttributes["class"]
+}>()
 </script>
 
 <template>
-  <span class="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-    {{ initials }}
-  </span>
+  <AvatarRoot
+    data-slot="avatar"
+    :class="cn('relative flex size-8 shrink-0 overflow-hidden rounded-full', props.class)"
+  >
+    <slot />
+  </AvatarRoot>
 </template>

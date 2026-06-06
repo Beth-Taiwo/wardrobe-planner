@@ -1,37 +1,19 @@
 <script setup lang="ts">
-import { cn } from "~/lib/utils"
+import type { SelectRootEmits, SelectRootProps } from "reka-ui"
+import { SelectRoot, useForwardPropsEmits } from "reka-ui"
 
-defineOptions({ inheritAttrs: false })
+const props = defineProps<SelectRootProps>()
+const emits = defineEmits<SelectRootEmits>()
 
-const props = defineProps<{ modelValue?: string | number, items?: Array<string | number | { label?: string, value?: string | number }>, placeholder?: string, class?: any }>()
-const emit = defineEmits<{ "update:modelValue": [value: string | number], blur: [event: FocusEvent] }>()
-
-function itemValue(item: string | number | { label?: string, value?: string | number }) {
-  return typeof item === "object" ? item.value ?? item.label ?? "" : item
-}
-
-function itemLabel(item: string | number | { label?: string, value?: string | number }) {
-  return typeof item === "object" ? item.label ?? String(item.value ?? "") : String(item)
-}
-
-function onChange(event: Event) {
-  const selectedValue = (event.target as HTMLSelectElement).value
-  const selectedItem = (props.items || []).find((item) => String(itemValue(item)) === selectedValue)
-  emit("update:modelValue", selectedItem === undefined ? selectedValue : itemValue(selectedItem))
-}
+const forwarded = useForwardPropsEmits(props, emits)
 </script>
 
 <template>
-  <select
-    v-bind="$attrs"
-    :value="modelValue"
-    :class="cn('flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50', props.class)"
-    @change="onChange"
-    @blur="emit('blur', $event)"
+  <SelectRoot
+    v-slot="slotProps"
+    data-slot="select"
+    v-bind="forwarded"
   >
-    <option v-if="placeholder" value="">{{ placeholder }}</option>
-    <option v-for="item in items || []" :key="String(itemValue(item))" :value="itemValue(item)">
-      {{ itemLabel(item) }}
-    </option>
-  </select>
+    <slot v-bind="slotProps" />
+  </SelectRoot>
 </template>

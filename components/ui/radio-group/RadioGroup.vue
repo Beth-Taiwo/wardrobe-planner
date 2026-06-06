@@ -1,19 +1,25 @@
 <script setup lang="ts">
-const props = defineProps<{ modelValue?: string, items?: Array<{ label: string, value: string }>, orientation?: string }>()
-const emit = defineEmits<{ "update:modelValue": [value: string] }>()
+import type { RadioGroupRootEmits, RadioGroupRootProps } from "reka-ui"
+import type { HTMLAttributes } from "vue"
+import { reactiveOmit } from "@vueuse/core"
+import { RadioGroupRoot, useForwardPropsEmits } from "reka-ui"
+import { cn } from '~/lib/utils'
+
+const props = defineProps<RadioGroupRootProps & { class?: HTMLAttributes["class"] }>()
+const emits = defineEmits<RadioGroupRootEmits>()
+
+const delegatedProps = reactiveOmit(props, "class")
+
+const forwarded = useForwardPropsEmits(delegatedProps, emits)
 </script>
 
 <template>
-  <div class="inline-flex rounded-md border border-input bg-background p-1">
-    <button
-      v-for="item in items || []"
-      :key="item.value"
-      type="button"
-      class="rounded px-3 py-1.5 text-sm font-medium transition"
-      :class="modelValue === item.value ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'"
-      @click="emit('update:modelValue', item.value)"
-    >
-      {{ item.label }}
-    </button>
-  </div>
+  <RadioGroupRoot
+    v-slot="slotProps"
+    data-slot="radio-group"
+    :class="cn('grid gap-3', props.class)"
+    v-bind="forwarded"
+  >
+    <slot v-bind="slotProps" />
+  </RadioGroupRoot>
 </template>

@@ -31,35 +31,38 @@ async function submitRegister() {
 
 <template>
   <section class="app-auth">
-    <Card class="app-auth-card" variant="subtle">
-      <template #header>
-        <div class="space-y-1">
-          <p class="app-eyebrow">Wardrobe planner</p>
-          <h1 class="text-2xl font-semibold">Create account</h1>
-          <p class="app-subtitle">Start tracking outfits, repeats, and clothing pieces.</p>
-        </div>
-      </template>
+    <Card class="app-auth-card">
+      <CardHeader>
+        <p class="app-eyebrow">Wardrobe planner</p>
+        <CardTitle>Create account</CardTitle>
+        <CardDescription>Start tracking outfits, repeats, and clothing pieces.</CardDescription>
+      </CardHeader>
 
-      <div class="space-y-4">
-        <Alert v-if="error" color="error" variant="soft" icon="i-heroicons-exclamation-triangle" :title="error" />
+      <CardContent class="space-y-4">
+        <Alert v-if="error" variant="destructive">
+          <AlertTitle>{{ error }}</AlertTitle>
+        </Alert>
 
-        <Form :state="{ displayName, email, password }" class="grid w-full gap-4" @submit.prevent="submitRegister">
-          <FormField label="Display name" class="w-full">
-            <Input v-model="displayName" class="w-full" autocomplete="name" icon="i-heroicons-user" />
-          </FormField>
-          <FormField label="Email" class="w-full">
-            <Input v-model="email" class="w-full" type="email" autocomplete="email" icon="i-heroicons-envelope" required />
-          </FormField>
-          <FormField label="Password" class="w-full">
-            <Input v-model="password" class="w-full" type="password" autocomplete="new-password" icon="i-heroicons-lock-closed" required />
-          </FormField>
-          <Button type="submit" block icon="i-heroicons-user-plus" :loading="loading">Create account</Button>
-        </Form>
+        <form class="grid w-full gap-4" @submit.prevent="submitRegister">
+          <div class="grid gap-2">
+            <Label for="register-display-name">Display name</Label>
+            <Input id="register-display-name" v-model="displayName" autocomplete="name" />
+          </div>
+          <div class="grid gap-2">
+            <Label for="register-email">Email</Label>
+            <Input id="register-email" v-model="email" type="email" autocomplete="email" required />
+          </div>
+          <div class="grid gap-2">
+            <Label for="register-password">Password</Label>
+            <Input id="register-password" v-model="password" type="password" autocomplete="new-password" required />
+          </div>
+          <Button type="submit" class="w-full" :disabled="loading">Create account</Button>
+        </form>
 
         <Separator label="or" />
 
-        <Button variant="outline" icon="i-heroicons-globe-alt" block to="/api/auth/google" external>
-          Continue with Google
+        <Button as-child variant="outline" class="w-full">
+          <NuxtLink to="/api/auth/google" external>Continue with Google</NuxtLink>
         </Button>
 
         <p class="text-center text-sm text-muted">
@@ -68,7 +71,7 @@ async function submitRegister() {
             Sign in
           </NuxtLink>
         </p>
-      </div>
+      </CardContent>
     </Card>
   </section>
 </template>

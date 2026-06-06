@@ -1,18 +1,35 @@
 <script setup lang="ts">
-defineProps<{ items?: Array<{ label: string, to: string, icon?: string }>, variant?: string }>()
+import type { NavigationMenuRootEmits, NavigationMenuRootProps } from "reka-ui"
+import type { HTMLAttributes } from "vue"
+import { reactiveOmit } from "@vueuse/core"
+import {
+  NavigationMenuRoot,
+  useForwardPropsEmits,
+} from "reka-ui"
+import { cn } from '~/lib/utils'
+import NavigationMenuViewport from "./NavigationMenuViewport.vue"
+
+const props = withDefaults(defineProps<NavigationMenuRootProps & {
+  class?: HTMLAttributes["class"]
+  viewport?: boolean
+}>(), {
+  viewport: true,
+})
+const emits = defineEmits<NavigationMenuRootEmits>()
+
+const delegatedProps = reactiveOmit(props, "class", "viewport")
+const forwarded = useForwardPropsEmits(delegatedProps, emits)
 </script>
 
 <template>
-  <div class="flex flex-wrap items-center gap-1">
-    <NuxtLink
-      v-for="item in items || []"
-      :key="item.to"
-      :to="item.to"
-      class="inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"
-      active-class="bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground"
-    >
-      <Icon v-if="item.icon" :name="item.icon" class="size-4" />
-      {{ item.label }}
-    </NuxtLink>
-  </div>
+  <NavigationMenuRoot
+    v-slot="slotProps"
+    data-slot="navigation-menu"
+    :data-viewport="viewport"
+    v-bind="forwarded"
+    :class="cn('group/navigation-menu relative flex max-w-max flex-1 items-center justify-center', props.class)"
+  >
+    <slot v-bind="slotProps" />
+    <NavigationMenuViewport v-if="viewport" />
+  </NavigationMenuRoot>
 </template>

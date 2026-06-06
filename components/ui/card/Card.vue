@@ -1,19 +1,22 @@
 <script setup lang="ts">
-import { cn } from "~/lib/utils"
+import type { HTMLAttributes } from "vue"
+import { cn } from '~/lib/utils'
 
-defineProps<{ class?: any, variant?: string }>()
+const props = defineProps<{
+  class?: HTMLAttributes["class"]
+}>()
 </script>
 
 <template>
-  <section :class="cn('rounded-lg border border-border bg-card text-card-foreground shadow-sm', $props.class)">
-    <header v-if="$slots.header" class="border-b border-border p-4">
-      <slot name="header" />
-    </header>
-    <div class="p-4">
-      <slot />
-    </div>
-    <footer v-if="$slots.footer" class="border-t border-border p-4">
-      <slot name="footer" />
-    </footer>
-  </section>
+  <div
+    data-slot="card"
+    :class="
+      cn(
+        'bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm',
+        props.class,
+      )
+    "
+  >
+    <slot />
+  </div>
 </template>

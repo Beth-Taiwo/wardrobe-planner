@@ -80,74 +80,75 @@ async function deleteAccount() {
       </div>
     </header>
 
-    <Alert v-if="error" color="error" variant="soft" :title="error" />
+    <Alert v-if="error" variant="destructive">
+      <AlertTitle>{{ error }}</AlertTitle>
+    </Alert>
 
     <div class="grid gap-5 lg:grid-cols-2">
-      <Card class="app-panel" variant="subtle">
-        <template #header>
-          <div>
-            <h2 class="text-lg font-semibold">Profile</h2>
-            <p class="text-sm text-muted">{{ data?.user?.email }}</p>
+      <Card class="app-panel">
+        <CardHeader>
+          <CardTitle>Profile</CardTitle>
+          <CardDescription>{{ data?.user?.email }}</CardDescription>
+        </CardHeader>
+        <CardContent class="grid gap-4">
+          <div class="grid gap-2">
+            <Label for="account-display-name">Display name</Label>
+            <Input id="account-display-name" v-model="displayName" />
           </div>
-        </template>
-        <div class="mt-4 grid gap-4">
-          <FormField label="Display name">
-            <Input v-model="displayName" icon="i-heroicons-user" />
-          </FormField>
-          <Button block icon="i-heroicons-check" :loading="profileLoading" @click="saveProfile">
+          <Button class="w-full" :disabled="profileLoading" @click="saveProfile">
             Save profile
           </Button>
-        </div>
+        </CardContent>
       </Card>
 
-      <Card class="app-panel" variant="subtle">
-        <template #header>
-          <h2 class="text-lg font-semibold">Password</h2>
-        </template>
-        <div class="mt-4 grid gap-4">
-          <FormField v-if="data?.user?.hasPassword" label="Current password">
-            <Input v-model="currentPassword" type="password" autocomplete="current-password" icon="i-heroicons-lock-closed" />
-          </FormField>
-          <FormField label="New password">
-            <Input v-model="newPassword" type="password" autocomplete="new-password" icon="i-heroicons-key" />
-          </FormField>
-          <Button block icon="i-heroicons-shield-check" :loading="passwordLoading" :disabled="newPassword.length < 8" @click="changePassword">
+      <Card class="app-panel">
+        <CardHeader>
+          <CardTitle>Password</CardTitle>
+        </CardHeader>
+        <CardContent class="grid gap-4">
+          <div v-if="data?.user?.hasPassword" class="grid gap-2">
+            <Label for="account-current-password">Current password</Label>
+            <Input id="account-current-password" v-model="currentPassword" type="password" autocomplete="current-password" />
+          </div>
+          <div class="grid gap-2">
+            <Label for="account-new-password">New password</Label>
+            <Input id="account-new-password" v-model="newPassword" type="password" autocomplete="new-password" />
+          </div>
+          <Button class="w-full" :disabled="passwordLoading || newPassword.length < 8" @click="changePassword">
             {{ data?.user?.hasPassword ? 'Change password' : 'Set password' }}
           </Button>
-        </div>
+        </CardContent>
       </Card>
 
-      <Card class="app-panel" variant="subtle">
-        <template #header>
-          <h2 class="text-lg font-semibold">Linked accounts</h2>
-        </template>
-        <div class="mt-4 flex items-center justify-between">
-          <span class="inline-flex items-center gap-2">
-            <Icon name="i-heroicons-globe-alt" class="h-5 w-5" />
-            Google
-          </span>
-          <Badge :color="data?.user?.linkedProviders.includes('google') ? 'success' : 'neutral'" variant="soft">
+      <Card class="app-panel">
+        <CardHeader>
+          <CardTitle>Linked accounts</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div class="flex items-center justify-between">
+            <span>Google</span>
+            <Badge>
             {{ data?.user?.linkedProviders.includes('google') ? 'Linked' : 'Not linked' }}
-          </Badge>
-        </div>
-        <Button class="mt-4" variant="outline" icon="i-heroicons-globe-alt" to="/api/auth/google" external block>
-          Continue with Google
-        </Button>
+            </Badge>
+          </div>
+          <Button as-child class="mt-4 w-full" variant="outline">
+            <NuxtLink to="/api/auth/google" external>Continue with Google</NuxtLink>
+          </Button>
+        </CardContent>
       </Card>
 
-      <Card class="app-panel" variant="subtle">
-        <template #header>
-          <h2 class="text-lg font-semibold">Delete account</h2>
-        </template>
-        <Alert
-          color="error"
-          variant="soft"
-          icon="i-heroicons-exclamation-triangle"
-          title="This removes your account, sessions, linked accounts, wardrobe, calendar entries, and outfit history."
-        />
-        <Button class="mt-4" color="error" variant="outline" block :loading="deleteLoading" @click="deleteAccount">
-          Delete account
-        </Button>
+      <Card class="app-panel">
+        <CardHeader>
+          <CardTitle>Delete account</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive">
+            <AlertTitle>This removes your account, sessions, linked accounts, wardrobe, calendar entries, and outfit history.</AlertTitle>
+          </Alert>
+          <Button class="mt-4 w-full" variant="destructive" :disabled="deleteLoading" @click="deleteAccount">
+            Delete account
+          </Button>
+        </CardContent>
       </Card>
     </div>
   </section>

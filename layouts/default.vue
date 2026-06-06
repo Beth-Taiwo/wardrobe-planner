@@ -17,7 +17,7 @@ async function logout() {
       <div class="app-topbar">
         <NuxtLink to="/calendar" class="app-brand">
           <span class="app-brand-mark">
-            <Icon name="i-lucide-shirt" class="h-5 w-5" />
+            WP
           </span>
           <span class="truncate">Wardrobe Planner</span>
         </NuxtLink>
@@ -28,8 +28,10 @@ async function logout() {
             size="sm"
           />
           <span class="max-w-48 truncate">{{ data.user.displayName || data.user.email }}</span>
-          <Button size="xs" variant="outline" icon="i-heroicons-cog-6-tooth" to="/account">Account</Button>
-          <Button size="xs" variant="outline" icon="i-heroicons-arrow-right-on-rectangle" @click="logout">Logout</Button>
+          <Button as-child size="sm" variant="outline">
+            <NuxtLink to="/account">Account</NuxtLink>
+          </Button>
+          <Button size="sm" variant="outline" @click="logout">Logout</Button>
         </div>
       </div>
       <div class="app-main">

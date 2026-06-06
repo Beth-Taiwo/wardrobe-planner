@@ -26,32 +26,34 @@ async function submitLogin() {
 
 <template>
   <section class="app-auth">
-    <Card class="app-auth-card" variant="subtle">
-      <template #header>
-        <div class="space-y-1">
-          <p class="app-eyebrow">Wardrobe planner</p>
-          <h1 class="text-2xl font-semibold">Sign in</h1>
-          <p class="app-subtitle">Open your calendar, wardrobe, and outfit history.</p>
-        </div>
-      </template>
+    <Card class="app-auth-card">
+      <CardHeader>
+        <p class="app-eyebrow">Wardrobe planner</p>
+        <CardTitle>Sign in</CardTitle>
+        <CardDescription>Open your calendar, wardrobe, and outfit history.</CardDescription>
+      </CardHeader>
 
-      <div class="space-y-4">
-        <Alert v-if="error" color="error" variant="soft" icon="i-heroicons-exclamation-triangle" :title="error" />
+      <CardContent class="space-y-4">
+        <Alert v-if="error" variant="destructive">
+          <AlertTitle>{{ error }}</AlertTitle>
+        </Alert>
 
-        <Form :state="{ email, password }" class="grid w-full gap-4" @submit.prevent="submitLogin">
-          <FormField label="Email" class="w-full">
-            <Input v-model="email" class="w-full" type="email" autocomplete="email" icon="i-heroicons-envelope" required />
-          </FormField>
-          <FormField label="Password" class="w-full">
-            <Input v-model="password" class="w-full" type="password" autocomplete="current-password" icon="i-heroicons-lock-closed" required />
-          </FormField>
-          <Button type="submit" block icon="i-heroicons-arrow-right" :loading="loading">Sign in</Button>
-        </Form>
+        <form class="grid w-full gap-4" @submit.prevent="submitLogin">
+          <div class="grid gap-2">
+            <Label for="login-email">Email</Label>
+            <Input id="login-email" v-model="email" type="email" autocomplete="email" required />
+          </div>
+          <div class="grid gap-2">
+            <Label for="login-password">Password</Label>
+            <Input id="login-password" v-model="password" type="password" autocomplete="current-password" required />
+          </div>
+          <Button type="submit" class="w-full" :disabled="loading">Sign in</Button>
+        </form>
 
         <Separator label="or" />
 
-        <Button variant="outline" icon="i-heroicons-globe-alt" block to="/api/auth/google" external>
-          Continue with Google
+        <Button as-child variant="outline" class="w-full">
+          <NuxtLink to="/api/auth/google" external>Continue with Google</NuxtLink>
         </Button>
 
         <p class="text-center text-sm text-muted">
@@ -60,7 +62,7 @@ async function submitLogin() {
             Create one
           </NuxtLink>
         </p>
-      </div>
+      </CardContent>
     </Card>
   </section>
 </template>
