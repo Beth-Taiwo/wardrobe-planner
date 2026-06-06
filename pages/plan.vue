@@ -1,5 +1,10 @@
 <script setup lang="ts">
+import { parseDate, type DateValue } from "@internationalized/date"
+import { CalendarIcon } from "@lucide/vue"
 import { computed, reactive, ref, watch } from "vue"
+import { toast as sonnerToast } from "vue-sonner"
+import { Calendar } from "~/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 import type { ClothingItem, DressEntry, OutfitPlan } from "~/types/dress"
 
 definePageMeta({ middleware: "auth" })
@@ -58,9 +63,9 @@ const savedPlan = ref<OutfitPlan | null>(null)
 const clothingSaveLoading = ref(false)
 const clothingError = ref("")
 const suggestionLoading = ref(false)
-const suggestionError = ref("")
 const suggestionResults = ref<DressSuggestion[]>([])
 const showAddPiece = ref(false)
+const planDateOpen = ref(false)
 const clothingLabelOptions = ["Blouse", "Shirt", "Skirt", "Dress", "Gown", "Trousers", "Jeans", "Kimono", "Boubou", "Jacket", "Top", "Shoes", "Accessory", "Other"]
 
 const { data: clothingItems, refresh: refreshClothingItems } = await useFetch<ClothingItem[]>("/api/clothes", {
@@ -91,6 +96,26 @@ const isEditing = computed(() => Boolean(routePlanId.value))
 const canSave = computed(() =>
   form.date >= today && form.eventName.trim().length > 0 && form.clothingItemIds.length > 0
 )
+const planDateValue = computed<DateValue | undefined>({
+  get: () => /^\d{4}-\d{2}-\d{2}$/.test(form.date) ? parseDate(form.date) : undefined,
+  set: (value) => {
+    if (!value) {
+      return
+    }
+
+    form.date = dateValueToString(value)
+    planDateOpen.value = false
+  }
+})
+const minimumPlanDate = computed(() => parseDate(today))
+const planDateLabel = computed(() =>
+  new Intl.DateTimeFormat("en", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric"
+  }).format(new Date(form.date + "T00:00:00.000Z"))
+)
 
 watch(existingPlan, (plan) => {
   if (!plan) {
@@ -114,7 +139,6 @@ watch([routePlanId, () => route.query.date], ([id]) => {
 
 watch(() => form.date, () => {
   suggestionResults.value = []
-  suggestionError.value = ""
 })
 
 async function savePlan() {
@@ -171,7 +195,6 @@ async function createClothingItem() {
 }
 
 async function suggestOutfit() {
-  suggestionError.value = ""
   suggestionLoading.value = true
 
   try {
@@ -188,10 +211,14 @@ async function suggestOutfit() {
       applySuggestion(result.suggestions[0].entry)
       toast.add({ title: "Suggestion applied", color: "green" })
     } else {
-      suggestionError.value = "No suggestion is available right now. You can keep planning manually."
+      sonnerToast.info("No suggestion is available right now.", {
+        description: "You can keep planning manually."
+      })
     }
   } catch (error: any) {
-    suggestionError.value = error?.statusMessage || error?.data?.statusMessage || "Suggestions are unavailable. You can keep planning manually."
+    sonnerToast.info("Suggestions are unavailable.", {
+      description: error?.statusMessage || error?.data?.statusMessage || "You can keep planning manually."
+    })
   } finally {
     suggestionLoading.value = false
   }
@@ -218,6 +245,13 @@ function clearClothingForm() {
   clothingForm.notes = ""
 }
 
+function dateValueToString(value: DateValue) {
+  const year = String(value.year)
+  const month = String(value.month).padStart(2, "0")
+  const day = String(value.day).padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
+
 function resetNewPlanForm() {
   savedPlan.value = null
   form.date = initialDate.value
@@ -225,7 +259,6 @@ function resetNewPlanForm() {
   form.prepNotes = ""
   form.clothingItemIds = []
   saveError.value = ""
-  suggestionError.value = ""
   suggestionResults.value = []
 }
 </script>
@@ -261,7 +294,26 @@ function resetNewPlanForm() {
 
           <div class="grid gap-2">
             <Label for="plan-date">Date</Label>
-            <Input id="plan-date" v-model="form.date" type="date" :min="today" />
+            <Popover v-model:open="planDateOpen">
+              <PopoverTrigger as-child>
+                <Button
+                  id="plan-date"
+                  type="button"
+                  variant="outline"
+                  class="h-10 justify-start gap-2 px-3 text-left font-normal"
+                >
+                  <CalendarIcon class="h-4 w-4" aria-hidden="true" />
+                  <span>{{ planDateLabel }}</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="start">
+                <Calendar
+                  v-model="planDateValue"
+                  :min-value="minimumPlanDate"
+                  layout="month-and-year"
+                />
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
 
@@ -280,11 +332,6 @@ function resetNewPlanForm() {
               </Button>
             </div>
           </div>
-
-          <Alert v-if="suggestionError" variant="destructive">
-            <AlertTitle>Suggestion unavailable</AlertTitle>
-            <AlertDescription>{{ suggestionError }}</AlertDescription>
-          </Alert>
 
           <div v-if="selectedClothingItems.length" class="grid gap-2 sm:grid-cols-2">
             <div v-for="item in selectedClothingItems" :key="item.id" class="app-card flex gap-3 p-3">
