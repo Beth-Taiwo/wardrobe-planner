@@ -72,54 +72,60 @@ async function deleteAccount() {
 
 <template>
   <section class="grid gap-5">
-    <header>
-      <p>Account</p>
-      <h1>Settings</h1>
+    <header class="app-page-header">
+      <div>
+        <p class="app-eyebrow">Account</p>
+        <h1 class="app-title">Settings</h1>
+        <p class="app-subtitle">Manage your profile, sign-in methods, and account data.</p>
+      </div>
     </header>
 
     <UAlert v-if="error" color="error" variant="soft" :title="error" />
 
     <div class="grid gap-5 lg:grid-cols-2">
-      <UCard>
+      <UCard class="app-panel" variant="subtle">
         <template #header>
           <div>
-            <h2>Profile</h2>
-            <p>{{ data?.user?.email }}</p>
+            <h2 class="text-lg font-semibold">Profile</h2>
+            <p class="text-sm text-muted">{{ data?.user?.email }}</p>
           </div>
         </template>
         <div class="mt-4 grid gap-4">
           <UFormField label="Display name">
-            <UInput v-model="displayName" />
+            <UInput v-model="displayName" icon="i-heroicons-user" />
           </UFormField>
-          <UButton block :loading="profileLoading" @click="saveProfile">
+          <UButton block icon="i-heroicons-check" :loading="profileLoading" @click="saveProfile">
             Save profile
           </UButton>
         </div>
       </UCard>
 
-      <UCard>
+      <UCard class="app-panel" variant="subtle">
         <template #header>
-          <h2>Password</h2>
+          <h2 class="text-lg font-semibold">Password</h2>
         </template>
         <div class="mt-4 grid gap-4">
           <UFormField v-if="data?.user?.hasPassword" label="Current password">
-            <UInput v-model="currentPassword" type="password" autocomplete="current-password" />
+            <UInput v-model="currentPassword" type="password" autocomplete="current-password" icon="i-heroicons-lock-closed" />
           </UFormField>
           <UFormField label="New password">
-            <UInput v-model="newPassword" type="password" autocomplete="new-password" />
+            <UInput v-model="newPassword" type="password" autocomplete="new-password" icon="i-heroicons-key" />
           </UFormField>
-          <UButton block :loading="passwordLoading" :disabled="newPassword.length < 8" @click="changePassword">
+          <UButton block icon="i-heroicons-shield-check" :loading="passwordLoading" :disabled="newPassword.length < 8" @click="changePassword">
             {{ data?.user?.hasPassword ? 'Change password' : 'Set password' }}
           </UButton>
         </div>
       </UCard>
 
-      <UCard>
+      <UCard class="app-panel" variant="subtle">
         <template #header>
-          <h2>Linked accounts</h2>
+          <h2 class="text-lg font-semibold">Linked accounts</h2>
         </template>
         <div class="mt-4 flex items-center justify-between">
-          <span>Google</span>
+          <span class="inline-flex items-center gap-2">
+            <UIcon name="i-heroicons-globe-alt" class="h-5 w-5" />
+            Google
+          </span>
           <UBadge :color="data?.user?.linkedProviders.includes('google') ? 'success' : 'neutral'" variant="soft">
             {{ data?.user?.linkedProviders.includes('google') ? 'Linked' : 'Not linked' }}
           </UBadge>
@@ -129,11 +135,16 @@ async function deleteAccount() {
         </UButton>
       </UCard>
 
-      <UCard>
+      <UCard class="app-panel" variant="subtle">
         <template #header>
-          <h2>Delete account</h2>
+          <h2 class="text-lg font-semibold">Delete account</h2>
         </template>
-        <p>This removes your account, sessions, linked accounts, wardrobe, calendar entries, and outfit history.</p>
+        <UAlert
+          color="error"
+          variant="soft"
+          icon="i-heroicons-exclamation-triangle"
+          title="This removes your account, sessions, linked accounts, wardrobe, calendar entries, and outfit history."
+        />
         <UButton class="mt-4" color="error" variant="outline" block :loading="deleteLoading" @click="deleteAccount">
           Delete account
         </UButton>

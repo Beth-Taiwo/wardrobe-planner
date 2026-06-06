@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { parseDate, type DateValue } from '@internationalized/date'
 import type { FormSubmitEvent } from '#ui/types'
 import { computed, nextTick, reactive, ref } from 'vue'
 import type { ClothingItem, DressEntry } from '~/types/dress'
@@ -177,6 +178,40 @@ const validBatchClothes = computed(() =>
   }))
 )
 const calendarDays = computed(() => buildCalendarDays(monthCursor.value))
+const calendarDate = computed<DateValue | undefined>({
+  get: () => parseDate(selectedDate.value),
+  set: (value) => {
+    if (!value) {
+      return
+    }
+
+    jumpToDate(dateValueToString(value))
+  }
+})
+const navigationItems = computed(() =>
+  navTabs.map((tab) => ({
+    label: tab.label,
+    icon: tab.icon,
+    to: tab.path,
+    active: activeTab.value === tab.key
+  }))
+)
+const wardrobeViewOptions = [
+  { label:"Grid", value:"grid", icon:"i-heroicons-squares-2x2" },
+  { label:"List", value:"list", icon:"i-heroicons-list-bullet" }
+]
+const clothingCheckboxItems = computed(() =>
+  (clothingItems.value || []).map((item) => ({
+    label: item.name,
+    value: item.id,
+    description: [item.label, item.color].filter(Boolean).join(" - ")
+  }))
+)
+const outfitStepperItems = [
+  { title:"Outfit", description:"Name and date", icon:"i-heroicons-sparkles" },
+  { title:"Pieces", description:"Clothing and image", icon:"i-heroicons-swatch" },
+  { title:"Save", description:"Notes and actions", icon:"i-heroicons-check" }
+]
 
 watch(selectedDate, (date) => {
   suggestionResults.value = []
@@ -253,10 +288,25 @@ function selectDate(date: string) {
   selectedDate.value = date
 }
 
+function dateValueToString(value: DateValue) {
+  const year = String(value.year)
+  const month = String(value.month).padStart(2, "0")
+  const day = String(value.day).padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
+
+function entryForDateValue(value: DateValue) {
+  return entriesByDate.value.get(dateValueToString(value))
+}
+
 function jumpToDate(date: string) {
   const [year, month] = date.split('-').map(Number)
   monthCursor.value = new Date(Date.UTC(year, month - 1, 1))
   selectedDate.value = date
+}
+
+function updateCalendarPlaceholder(value: DateValue) {
+  monthCursor.value = new Date(Date.UTC(value.year, value.month - 1, 1))
 }
 
 function fillFormFromEntry(entry: DressEntry) {
@@ -779,32 +829,23 @@ function toDateString(year: number, month: number, day: number) {
 </script>
 
 <template>
-  <header class="flex flex-col gap-4  pb-5 lg:flex-row lg:items-end lg:justify-between">
+  <header class="app-page-header">
         <div>
-          <p class="text-sm font-medium uppercase tracking-wide">
+          <p class="app-eyebrow">
             Wardrobe planner
           </p>
-          <h1 class="mt-1 text-3xl font-semibold  sm:text-4xl">
+          <h1 class="app-title">
             Dress Calendar
           </h1>
+          <p class="app-subtitle">
+            Plan outfits, manage clothing pieces, and review what you wear over time.
+          </p>
         </div>
 
         <nav class="flex flex-wrap items-center gap-2" aria-label="Primary navigation">
-          <UButtonGroup>
-            <UButton
-              v-for="tab in navTabs"
-              :key="tab.key"
-              type="button"
-              :icon="tab.icon"
-              :variant="activeTab === tab.key ? 'solid' : 'outline'"
-              @click="goToTab(tab.key)"
-            >
-              {{ tab.label }}
-            </UButton>
-          </UButtonGroup>
+          <UNavigationMenu :items="navigationItems" variant="pill" />
 
           <UButton
-            variant="outline"
             icon="i-heroicons-magnifying-glass"
             :aria-label="searchOpen ? 'Hide search filters' : 'Show search filters'"
             :variant="searchOpen ? 'solid' : 'outline'"
@@ -816,7 +857,7 @@ function toDateString(year: number, month: number, day: number) {
         </nav>
       </header>
 
-      <section v-if="searchOpen" class="p-4">
+      <section v-if="searchOpen" class="app-panel app-panel-pad">
         <div class="grid gap-3 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,0.95fr)_minmax(260px,0.75fr)] lg:items-end">
           <UFormField label="Find exact date">
             <div class="flex gap-2">
@@ -856,7 +897,7 @@ function toDateString(year: number, month: number, day: number) {
 
           <UFormField label="Find category">
             <div class="flex gap-2">
-              <USelect v-model="searchCategory" :items="categorySearchOptions" class="min-w-0 flex-1" @blur="searchCategory && searchCategory !== 'All categories' && runSearch('category')" />
+              <USelectMenu v-model="searchCategory" :items="categorySearchOptions" class="min-w-0 flex-1" placeholder="All categories" @blur="searchCategory && searchCategory !== 'All categories' && runSearch('category')" />
               <UButton icon="i-heroicons-tag" :loading="searching" :disabled="!searchCategory || searchCategory === 'All categories'" @click="runSearch('category')">
                 Search category
               </UButton>
@@ -864,7 +905,7 @@ function toDateString(year: number, month: number, day: number) {
           </UFormField>
         </div>
 
-        <div v-if="searchLabel" class="mt-4  pt-4">
+        <div v-if="searchLabel" class="mt-4 border-t border-default pt-4">
           <div class="mb-3 flex items-center justify-between gap-3">
             <p class="text-sm font-medium">
               {{ searchLabel }}
@@ -879,7 +920,7 @@ function toDateString(year: number, month: number, day: number) {
               v-for="entry in searchResults"
               :key="entry.id"
               type="button"
-              class="p-3 text-left transition"
+              class="app-clickable p-3 text-left transition"
               @click="openSearchResult(entry)"
             >
               <span class="block text-xs font-semibold">{{ entry.date }}</span>
@@ -889,8 +930,8 @@ function toDateString(year: number, month: number, day: number) {
         </div>
       </section>
 
-      <section v-if="activeTab === 'insight'" class="overflow-hidden">
-        <div class="px-4 py-4">
+      <section v-if="activeTab === 'insight'" class="app-panel overflow-hidden">
+        <div class="border-b border-default px-4 py-4">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p class="text-xs font-semibold uppercase tracking-wide">Insights</p>
@@ -904,7 +945,7 @@ function toDateString(year: number, month: number, day: number) {
 
         <div class="p-4">
           <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div class="p-4">
+            <div class="app-card p-4">
               <div class="flex items-center justify-between gap-3">
                 <p class="text-xs font-semibold uppercase tracking-wide">Entries</p>
                 <UIcon name="i-heroicons-calendar-days" class="h-5 w-5" />
@@ -913,7 +954,7 @@ function toDateString(year: number, month: number, day: number) {
               <p class="mt-1 text-sm">Saved outfit days</p>
             </div>
 
-            <div class="p-4">
+            <div class="app-card p-4">
               <div class="flex items-center justify-between gap-3">
                 <p class="text-xs font-semibold uppercase tracking-wide">Unique outfits</p>
                 <UIcon name="i-heroicons-swatch" class="h-5 w-5" />
@@ -922,7 +963,7 @@ function toDateString(year: number, month: number, day: number) {
               <p class="mt-1 text-sm">Distinct outfit names</p>
             </div>
 
-            <div class="p-4">
+            <div class="app-card p-4">
               <div class="flex items-center justify-between gap-3">
                 <p class="text-xs font-semibold uppercase tracking-wide">This year</p>
                 <UIcon name="i-heroicons-chart-bar" class="h-5 w-5" />
@@ -931,7 +972,7 @@ function toDateString(year: number, month: number, day: number) {
               <p class="mt-1 text-sm">Entries in the current year</p>
             </div>
 
-            <div class="p-4">
+            <div class="app-card p-4">
               <div class="flex items-center justify-between gap-3">
                 <p class="text-xs font-semibold uppercase tracking-wide">Uncategorized</p>
                 <UIcon name="i-heroicons-tag" class="h-5 w-5" />
@@ -942,13 +983,13 @@ function toDateString(year: number, month: number, day: number) {
           </div>
 
           <div class="mt-4 grid gap-4 lg:grid-cols-3">
-            <div class="p-4">
+            <div class="app-card p-4">
               <div class="mb-3 flex items-center gap-2">
                 <UIcon name="i-heroicons-arrow-trending-up" class="h-5 w-5" />
                 <p class="text-sm font-semibold">Most worn</p>
               </div>
               <div class="space-y-2">
-                <div v-for="item in stats?.mostWorn" :key="item.title" class="px-3 py-2">
+                <div v-for="item in stats?.mostWorn" :key="item.title" class="app-clickable px-3 py-2">
                   <div class="flex items-start justify-between gap-3">
                     <p class="text-sm font-medium">{{ item.title }}</p>
                     <UBadge variant="soft">{{ item.count }}</UBadge>
@@ -958,26 +999,26 @@ function toDateString(year: number, month: number, day: number) {
               </div>
             </div>
 
-            <div class="p-4">
+            <div class="app-card p-4">
               <div class="mb-3 flex items-center gap-2">
                 <UIcon name="i-heroicons-squares-2x2" class="h-5 w-5" />
                 <p class="text-sm font-semibold">Categories</p>
               </div>
               <div class="space-y-2">
-                <div v-for="item in stats?.categories" :key="item.category" class="flex items-center justify-between   px-3 py-2">
+                <div v-for="item in stats?.categories" :key="item.category" class="app-clickable flex items-center justify-between px-3 py-2">
                   <span class="text-sm font-medium">{{ item.category }}</span>
                   <UBadge color="neutral" variant="soft">{{ item.count }}</UBadge>
                 </div>
               </div>
             </div>
 
-            <div class="p-4">
+            <div class="app-card p-4">
               <div class="mb-3 flex items-center gap-2">
                 <UIcon name="i-heroicons-archive-box" class="h-5 w-5" />
                 <p class="text-sm font-semibold">Not worn this year</p>
               </div>
               <div class="space-y-2">
-                <div v-for="item in stats?.notWornThisYear" :key="item.title" class="px-3 py-2">
+                <div v-for="item in stats?.notWornThisYear" :key="item.title" class="app-clickable px-3 py-2">
                   <p class="text-sm font-medium">{{ item.title }}</p>
                   <p class="mt-1 text-xs">Last worn {{ item.lastWorn }}</p>
                 </div>
@@ -988,7 +1029,7 @@ function toDateString(year: number, month: number, day: number) {
       </section>
 
       <div v-if="activeTab === 'wardrobe'" class="grid gap-6" :class="showAddClothesForm ? 'lg:grid-cols-[minmax(0,1fr)_380px]' : 'lg:grid-cols-1'">
-        <section class="p-4">
+        <section class="app-panel app-panel-pad">
           <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <p class="text-xs font-semibold uppercase tracking-wide">Wardrobe</p>
@@ -1011,26 +1052,13 @@ function toDateString(year: number, month: number, day: number) {
               >
                 Batch upload
               </UButton>
-              <UButtonGroup aria-label="Wardrobe view mode">
-                <UButton
-                  type="button"
-                  icon="i-heroicons-squares-2x2"
-                  :variant="wardrobeViewMode === 'grid' ? 'solid' : 'outline'"
-                  aria-label="Show wardrobe as grid"
-                  @click="wardrobeViewMode = 'grid'"
-                >
-                  Grid
-                </UButton>
-                <UButton
-                  type="button"
-                  icon="i-heroicons-list-bullet"
-                  :variant="wardrobeViewMode === 'list' ? 'solid' : 'outline'"
-                  aria-label="Show wardrobe as list"
-                  @click="wardrobeViewMode = 'list'"
-                >
-                  List
-                </UButton>
-              </UButtonGroup>
+              <URadioGroup
+                v-model="wardrobeViewMode"
+                :items="wardrobeViewOptions"
+                variant="card"
+                orientation="horizontal"
+                aria-label="Wardrobe view mode"
+              />
               <UBadge color="neutral" variant="soft">{{ clothingItems?.length || 0 }} item{{ (clothingItems?.length || 0) === 1 ? '' : 's' }}</UBadge>
             </div>
           </div>
@@ -1039,10 +1067,10 @@ function toDateString(year: number, month: number, day: number) {
             <article
               v-for="item in clothingItems"
               :key="item.id"
-              class="overflow-hidden   transition"
+              class="app-card overflow-hidden transition"
             >
               <button type="button" class="block w-full cursor-pointer text-left" @click="editClothingItem(item)">
-                <div class="flex aspect-square items-center justify-center">
+                <div class="app-media flex aspect-square items-center justify-center rounded-none">
                   <img v-if="item.imageUrl" :src="item.imageUrl" alt="" class="h-full w-full object-cover">
                   <span v-else class="px-3 text-center text-sm font-medium">No image</span>
                 </div>
@@ -1058,13 +1086,13 @@ function toDateString(year: number, month: number, day: number) {
             </article>
           </div>
 
-          <div v-else-if="clothingItems?.length" class="overflow-hidden">
+          <div v-else-if="clothingItems?.length" class="app-card overflow-hidden">
             <article
               v-for="item in clothingItems"
               :key="item.id"
             >
-              <button type="button" class="flex w-full cursor-pointer items-center gap-3 p-3 text-left" @click="editClothingItem(item)">
-                <div class="h-16 w-16 shrink-0 overflow-hidden">
+              <button type="button" class="flex w-full cursor-pointer items-center gap-3 border-b border-default p-3 text-left last:border-b-0 hover:bg-muted" @click="editClothingItem(item)">
+                <div class="app-media h-16 w-16 shrink-0">
                   <img v-if="item.imageUrl" :src="item.imageUrl" alt="" class="h-full w-full object-cover">
                   <span v-else class="flex h-full w-full items-center justify-center px-2 text-center text-xs font-medium">No image</span>
                 </div>
@@ -1078,13 +1106,13 @@ function toDateString(year: number, month: number, day: number) {
             </article>
           </div>
 
-          <div v-else class="p-6 text-center">
+          <div v-else class="app-card p-6 text-center">
             <p class="text-sm font-medium">No clothing pieces yet</p>
             <p class="mt-1 text-sm">Open the Add clothes form, then pair pieces into outfit plans.</p>
           </div>
         </section>
 
-        <aside v-if="showAddClothesForm" class="p-4">
+        <aside v-if="showAddClothesForm" class="app-panel app-panel-pad">
           <div class="mb-4 flex items-center justify-between gap-3">
             <h2 class="text-lg font-semibold">{{ editingClothingItemId ?"Edit clothes" :"Add clothes" }}</h2>
             <UButton
@@ -1100,18 +1128,26 @@ function toDateString(year: number, month: number, day: number) {
           <UAlert v-if="clothingError" color="error" variant="soft" icon="i-heroicons-exclamation-triangle" :title="clothingError" class="mb-4" />
 
           <div class="space-y-4">
-            <label class="block cursor-pointer overflow-hidden   transition">
-              <div class="relative flex aspect-square items-center justify-center">
+            <div class="block overflow-hidden transition">
+              <div class="app-media relative flex aspect-square items-center justify-center">
                 <img v-if="clothingForm.imageUrl" :src="clothingForm.imageUrl" alt="" class="h-full w-full object-cover">
                 <span v-else class="px-3 text-center text-sm font-medium">
                   {{ clothingUploadLoading ?"Uploading..." :"Click to add image" }}
                 </span>
-                <span v-if="clothingForm.imageUrl" class="absolute bottom-2 left-2   px-2 py-1 text-xs font-medium">
+                <span v-if="clothingForm.imageUrl" class="absolute bottom-2 left-2 rounded bg-white/90 px-2 py-1 text-xs font-medium shadow-sm">
                   {{ clothingUploadLoading ?"Uploading..." :"Change image" }}
                 </span>
               </div>
-              <input type="file" accept="image/*" class="hidden" :disabled="clothingUploadLoading" @change="uploadClothingImage">
-            </label>
+              <UFileUpload
+                class="mt-3"
+                accept="image/*"
+                icon="i-heroicons-photo"
+                label="Upload clothing image"
+                description="PNG, JPG, or WEBP"
+                :disabled="clothingUploadLoading"
+                @change="uploadClothingImage"
+              />
+            </div>
 
             <UFormField label="Name">
               <UInput v-model="clothingForm.name" placeholder="Yellow Ankara top" class="w-full" />
@@ -1119,7 +1155,7 @@ function toDateString(year: number, month: number, day: number) {
 
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <UFormField label="Label">
-                <USelect v-model="clothingForm.label" :items="clothingLabelOptions" class="w-full" />
+                <USelectMenu v-model="clothingForm.label" :items="clothingLabelOptions" class="w-full" />
               </UFormField>
               <UFormField label="Color">
                 <UInput v-model="clothingForm.color" placeholder="Yellow" class="w-full" />
@@ -1148,51 +1184,32 @@ function toDateString(year: number, month: number, day: number) {
       </div>
 
       <div v-if="activeTab === 'calendar'" class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
-        <section class="p-4">
-          <div class="mb-4 flex items-center justify-between gap-3">
-            <UButton variant="outline" square icon="i-heroicons-chevron-left" aria-label="Previous month" @click="moveMonth(-1)" />
-            <h2 class="text-xl font-semibold">
-              {{ monthLabel }}
-            </h2>
-            <UButton variant="outline" square icon="i-heroicons-chevron-right" aria-label="Next month" @click="moveMonth(1)" />
-          </div>
-
-          <div class="grid grid-cols-7 gap-2 text-center text-xs font-semibold uppercase">
-            <span>Sun</span>
-            <span>Mon</span>
-            <span>Tue</span>
-            <span>Wed</span>
-            <span>Thu</span>
-            <span>Fri</span>
-            <span>Sat</span>
-          </div>
-
-          <div class="mt-2 grid grid-cols-7 gap-2">
-            <button
-              v-for="(day, index) in calendarDays"
-              :key="day.date || `blank-${index}`"
-              type="button"
-              :disabled="!day.isCurrentMonth"
-              class="group relative min-h-28 overflow-visible p-2 text-left transition"
-              @click="selectDate(day.date)"
-            >
-              <span class="text-sm font-semibold">{{ day.day }}</span>
-              <template v-if="entriesByDate.has(day.date)">
-                <span class="mt-2 block truncate text-sm font-medium">
-                  {{ entriesByDate.get(day.date)?.title }}
-                </span>
-                <span class="mt-1 block truncate text-xs">
-                  {{ entriesByDate.get(day.date)?.category || 'Planned' }}
-                </span>
-                <span class="pointer-events-none absolute left-2 right-2 top-9 z-20 hidden   p-2 text-xs font-medium leading-snug   group-hover:block group-focus-visible:block">
-                  {{ entriesByDate.get(day.date)?.title }}
-                </span>
-              </template>
-            </button>
-          </div>
+        <section class="app-panel app-panel-pad">
+          <UCalendar
+            v-model="calendarDate"
+            :month-controls="true"
+            :year-controls="true"
+            size="xl"
+            class="w-full"
+            @update:placeholder="updateCalendarPlaceholder"
+          >
+            <template #day="{ day }">
+              <div class="min-h-20 w-full min-w-0 p-1 text-left sm:min-h-24">
+                <span class="block text-sm font-semibold">{{ day.day }}</span>
+                <template v-if="entryForDateValue(day)">
+                  <span class="mt-2 block max-w-24 truncate text-xs font-semibold sm:max-w-32">
+                    {{ entryForDateValue(day)?.title }}
+                  </span>
+                  <UBadge size="xs" variant="soft" class="mt-1 max-w-24 truncate sm:max-w-32">
+                    {{ entryForDateValue(day)?.category || 'Planned' }}
+                  </UBadge>
+                </template>
+              </div>
+            </template>
+          </UCalendar>
         </section>
 
-        <aside class="p-4">
+        <aside class="app-panel app-panel-pad">
           <div class="mb-4">
             <p class="text-sm font-medium">
               {{ selectedDate }}
@@ -1201,6 +1218,8 @@ function toDateString(year: number, month: number, day: number) {
               {{ selectedEntry ? 'Edit outfit' : 'Plan outfit' }}
             </h2>
           </div>
+
+          <UStepper :items="outfitStepperItems" :model-value="selectedClothingItems.length ? 2 : 1" size="xs" class="mb-5" />
 
           <UForm :state="form" class="space-y-4" @submit="saveDress">
             <UFormField label="Date" name="date">
@@ -1225,7 +1244,7 @@ function toDateString(year: number, month: number, day: number) {
               :title="suggestionError"
             />
 
-            <div v-if="suggestionResults.length" class="space-y-2   p-3">
+            <div v-if="suggestionResults.length" class="app-card space-y-2 p-3">
               <div class="flex items-center justify-between gap-3">
                 <p class="text-sm font-semibold">
                   Suggestions for {{ form.date }}
@@ -1238,7 +1257,7 @@ function toDateString(year: number, month: number, day: number) {
                 v-for="suggestion in suggestionResults"
                 :key="suggestion.entry.id"
                 type="button"
-                class="w-full   p-3 text-left transition"
+                class="app-clickable w-full p-3 text-left transition"
                 @click="applySuggestion(suggestion.entry)"
               >
                 <span class="block text-sm font-semibold">{{ suggestion.entry.title }}</span>
@@ -1257,7 +1276,7 @@ function toDateString(year: number, month: number, day: number) {
               </UButton>
             </div>
 
-            <div v-if="historyResult" class="p-3">
+            <div v-if="historyResult" class="app-card p-3">
               <p class="text-sm font-semibold">
                 {{ historyResult.title }} worn {{ historyResult.count }} time{{ historyResult.count === 1 ?"" :"s" }}
               </p>
@@ -1266,7 +1285,7 @@ function toDateString(year: number, month: number, day: number) {
                   v-for="entry in historyResult.entries"
                   :key="entry.id"
                   type="button"
-                  class="block w-full  px-2 py-1 text-left"
+                  class="block w-full rounded px-2 py-1 text-left hover:bg-muted"
                   @click="openSearchResult(entry)"
                 >
                   {{ entry.date }} - {{ entry.category ||"Uncategorized" }}
@@ -1280,7 +1299,7 @@ function toDateString(year: number, month: number, day: number) {
               </UFormField>
 
               <UFormField label="Category" name="category">
-                <USelect v-model="form.category" :items="categoryOptions" />
+                <USelectMenu v-model="form.category" :items="categoryOptions" />
               </UFormField>
             </div>
 
@@ -1288,7 +1307,7 @@ function toDateString(year: number, month: number, day: number) {
               <UInput v-model="form.imageUrl" placeholder="https://..." />
             </UFormField>
 
-            <section class="space-y-3   p-3">
+            <section class="app-card space-y-3 p-3">
               <div class="flex items-start justify-between gap-3">
                 <div>
                   <h3 class="text-sm font-semibold">Clothing pieces</h3>
@@ -1301,9 +1320,9 @@ function toDateString(year: number, month: number, day: number) {
                 <div
                   v-for="item in selectedClothingItems"
                   :key="item.id"
-                  class="overflow-hidden"
+                  class="app-card overflow-hidden"
                 >
-                  <div class="flex aspect-square items-center justify-center">
+                  <div class="app-media flex aspect-square items-center justify-center rounded-none">
                     <img v-if="item.imageUrl" :src="item.imageUrl" alt="" class="h-full w-full object-cover">
                     <span v-else class="px-2 text-center text-xs font-medium">No image</span>
                   </div>
@@ -1314,17 +1333,13 @@ function toDateString(year: number, month: number, day: number) {
                 </div>
               </div>
 
-              <div v-if="clothingItems?.length" class="max-h-36 space-y-1 overflow-auto   p-2">
-                <label
-                  v-for="item in clothingItems"
-                  :key="item.id"
-                  class="flex cursor-pointer items-center gap-2  px-2 py-1 text-sm"
-                >
-                  <input v-model="form.clothingItemIds" type="checkbox" :value="item.id" class="h-4 w-4">
-                  <span class="min-w-0 flex-1 truncate">{{ item.name }}</span>
-                  <span class="shrink-0 text-xs">{{ item.label }}</span>
-                </label>
-              </div>
+              <UCheckboxGroup
+                v-if="clothingItems?.length"
+                v-model="form.clothingItemIds"
+                :items="clothingCheckboxItems"
+                variant="card"
+                class="max-h-44 overflow-auto"
+              />
 
               <UAlert v-if="clothingError" color="error" variant="soft" icon="i-heroicons-exclamation-triangle" :title="clothingError" />
 
@@ -1333,7 +1348,7 @@ function toDateString(year: number, month: number, day: number) {
                   <UInput v-model="clothingForm.name" placeholder="Yellow Ankara top" />
                 </UFormField>
                 <UFormField label="Piece label">
-                  <USelect v-model="clothingForm.label" :items="clothingLabelOptions" />
+                  <USelectMenu v-model="clothingForm.label" :items="clothingLabelOptions" />
                 </UFormField>
                 <UFormField label="Piece color">
                   <UInput v-model="clothingForm.color" placeholder="Yellow" />
@@ -1344,10 +1359,14 @@ function toDateString(year: number, month: number, day: number) {
               </div>
 
               <div class="flex flex-wrap items-center gap-2">
-                <label class="inline-flex cursor-pointer items-center gap-2   px-3 py-2 text-sm font-medium">
-                  <span>{{ clothingUploadLoading ?"Uploading..." :"Upload image" }}</span>
-                  <input type="file" accept="image/*" class="hidden" :disabled="clothingUploadLoading" @change="uploadClothingImage">
-                </label>
+                <UFileUpload
+                  accept="image/*"
+                  variant="button"
+                  icon="i-heroicons-photo"
+                  label="Upload image"
+                  :disabled="clothingUploadLoading"
+                  @change="uploadClothingImage"
+                />
                 <UButton type="button" variant="outline" icon="i-heroicons-plus" :loading="clothingSaveLoading" :disabled="!clothingForm.name.trim()" @click="createClothingItem">
                   Add piece
                 </UButton>
@@ -1358,7 +1377,7 @@ function toDateString(year: number, month: number, day: number) {
               <UTextarea v-model="form.notes" :rows="4" placeholder="Accessories, shoes, reminders" />
             </UFormField>
 
-            <div v-if="form.imageUrl" class="overflow-hidden">
+            <div v-if="form.imageUrl" class="app-media">
               <img :src="form.imageUrl" alt="" class="aspect-[4/3] w-full object-cover">
             </div>
 
@@ -1390,26 +1409,24 @@ function toDateString(year: number, month: number, day: number) {
             :title="batchClothesError"
           />
 
-          <label class="flex cursor-pointer items-center justify-center gap-2   px-4 py-5 text-sm font-medium  transition">
-            <UIcon name="i-heroicons-photo" class="h-5 w-5" />
-            <span>{{ batchClothesUploadLoading ?"Uploading images..." :"Choose multiple images" }}</span>
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              class="hidden"
-              :disabled="batchClothesUploadLoading"
-              @change="uploadBatchClothingImages"
-            >
-          </label>
+          <UFileUpload
+            accept="image/*"
+            multiple
+            layout="grid"
+            icon="i-heroicons-photo"
+            :label="batchClothesUploadLoading ? 'Uploading images...' : 'Choose multiple images'"
+            description="Create editable clothing-piece drafts from image files."
+            :disabled="batchClothesUploadLoading"
+            @change="uploadBatchClothingImages"
+          />
 
           <div v-if="batchImageDrafts.length" class="space-y-3">
             <div
               v-for="(draft, index) in batchImageDrafts"
               :key="draft.imageUrl"
-              class="grid gap-3   p-3 sm:grid-cols-[96px_minmax(0,1fr)]"
+              class="app-card grid gap-3 p-3 sm:grid-cols-[96px_minmax(0,1fr)]"
             >
-              <div class="overflow-hidden">
+              <div class="app-media">
                 <img :src="draft.imageUrl" alt="" class="aspect-square h-full w-full object-cover">
               </div>
               <div class="space-y-3">
@@ -1418,7 +1435,7 @@ function toDateString(year: number, month: number, day: number) {
                     <UInput v-model="draft.name" class="w-full" />
                   </UFormField>
                   <UFormField label="Label">
-                    <USelect v-model="draft.label" :items="clothingLabelOptions" class="w-full" />
+                    <USelectMenu v-model="draft.label" :items="clothingLabelOptions" class="w-full" />
                   </UFormField>
                   <UFormField label="Color">
                     <UInput v-model="draft.color" class="w-full" />
@@ -1438,7 +1455,7 @@ function toDateString(year: number, month: number, day: number) {
             </div>
           </div>
 
-          <div v-if="!batchImageDrafts.length" class="p-3 text-sm">
+          <div v-if="!batchImageDrafts.length" class="app-card p-3 text-sm">
             Select images to create editable clothing-piece drafts.
           </div>
         </div>

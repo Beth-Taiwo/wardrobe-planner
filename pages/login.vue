@@ -25,37 +25,42 @@ async function submitLogin() {
 </script>
 
 <template>
-  <section class="flex min-h-[calc(100vh-2.5rem)] w-full items-center justify-center py-8">
-    <UCard class="w-full max-w-md">
+  <section class="app-auth">
+    <UCard class="app-auth-card" variant="subtle">
       <template #header>
-        <div>
-          <p>Wardrobe planner</p>
-          <h1>Sign in</h1>
+        <div class="space-y-1">
+          <p class="app-eyebrow">Wardrobe planner</p>
+          <h1 class="text-2xl font-semibold">Sign in</h1>
+          <p class="app-subtitle">Open your calendar, wardrobe, and outfit history.</p>
         </div>
       </template>
 
-      <UAlert v-if="error" color="error" variant="soft" :title="error" />
+      <div class="space-y-4">
+        <UAlert v-if="error" color="error" variant="soft" icon="i-heroicons-exclamation-triangle" :title="error" />
 
-      <UForm :state="{ email, password }" class="grid w-full gap-4" @submit.prevent="submitLogin">
-        <UFormField label="Email" class="w-full">
-          <UInput v-model="email" class="w-full" type="email" autocomplete="email" required />
-        </UFormField>
-        <UFormField label="Password" class="w-full">
-          <UInput v-model="password" class="w-full" type="password" autocomplete="current-password" required />
-        </UFormField>
-        <UButton type="submit" block :loading="loading">Sign in</UButton>
-      </UForm>
+        <UForm :state="{ email, password }" class="grid w-full gap-4" @submit.prevent="submitLogin">
+          <UFormField label="Email" class="w-full">
+            <UInput v-model="email" class="w-full" type="email" autocomplete="email" icon="i-heroicons-envelope" required />
+          </UFormField>
+          <UFormField label="Password" class="w-full">
+            <UInput v-model="password" class="w-full" type="password" autocomplete="current-password" icon="i-heroicons-lock-closed" required />
+          </UFormField>
+          <UButton type="submit" block icon="i-heroicons-arrow-right" :loading="loading">Sign in</UButton>
+        </UForm>
 
-      <UButton variant="outline" icon="i-heroicons-globe-alt" block to="/api/auth/google" external>
-        Continue with Google
-      </UButton>
+        <USeparator label="or" />
 
-      <p class="text-center">
-        Need an account?
-        <NuxtLink :to="{ path: '/register', query: route.query }">
-          Create one
-        </NuxtLink>
-      </p>
+        <UButton variant="outline" icon="i-heroicons-globe-alt" block to="/api/auth/google" external>
+          Continue with Google
+        </UButton>
+
+        <p class="text-center text-sm text-muted">
+          Need an account?
+          <NuxtLink :to="{ path: '/register', query: route.query }">
+            Create one
+          </NuxtLink>
+        </p>
+      </div>
     </UCard>
   </section>
 </template>
