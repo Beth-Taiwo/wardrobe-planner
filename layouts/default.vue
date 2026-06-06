@@ -13,28 +13,28 @@ async function logout() {
 
 <template>
   <main class="app-shell">
-    <UContainer class="app-container">
+    <div class="app-container">
       <div class="app-topbar">
         <NuxtLink to="/calendar" class="app-brand">
           <span class="app-brand-mark">
-            <UIcon name="i-lucide-shirt" class="h-5 w-5" />
+            <Icon name="i-lucide-shirt" class="h-5 w-5" />
           </span>
           <span class="truncate">Wardrobe Planner</span>
         </NuxtLink>
 
         <div v-if="data?.user" class="app-userbar">
-          <UAvatar
+          <Avatar
             :alt="data.user.displayName || data.user.email"
             size="sm"
           />
           <span class="max-w-48 truncate">{{ data.user.displayName || data.user.email }}</span>
-          <UButton size="xs" variant="outline" icon="i-heroicons-cog-6-tooth" to="/account">Account</UButton>
-          <UButton size="xs" variant="outline" icon="i-heroicons-arrow-right-on-rectangle" @click="logout">Logout</UButton>
+          <Button size="xs" variant="outline" icon="i-heroicons-cog-6-tooth" to="/account">Account</Button>
+          <Button size="xs" variant="outline" icon="i-heroicons-arrow-right-on-rectangle" @click="logout">Logout</Button>
         </div>
       </div>
       <div class="app-main">
         <slot />
       </div>
-    </UContainer>
+    </div>
   </main>
 </template>

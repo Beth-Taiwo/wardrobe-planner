@@ -13,7 +13,7 @@ const emit = defineEmits<{ "update:open": [value: boolean] }>()
               <h2 class="text-lg font-semibold">{{ title }}</h2>
               <p v-if="description" class="mt-1 text-sm text-muted-foreground">{{ description }}</p>
             </div>
-            <UButton variant="ghost" square icon="i-heroicons-x-mark" aria-label="Close" @click="emit('update:open', false)" />
+            <Button variant="ghost" square icon="i-heroicons-x-mark" aria-label="Close" @click="emit('update:open', false)" />
           </div>
         </header>
         <div class="p-4">

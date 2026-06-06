@@ -56,9 +56,9 @@ function selectDay(day: CalendarDay) {
 <template>
   <div class="w-full">
     <div class="mb-3 flex items-center justify-between gap-3">
-      <UButton variant="outline" size="xs" @click="moveMonth(-1)">Previous</UButton>
+      <Button variant="outline" size="xs" @click="moveMonth(-1)">Previous</Button>
       <p class="text-sm font-semibold">{{ monthLabel }}</p>
-      <UButton variant="outline" size="xs" @click="moveMonth(1)">Next</UButton>
+      <Button variant="outline" size="xs" @click="moveMonth(1)">Next</Button>
     </div>
     <div class="grid grid-cols-7 gap-1 text-center text-xs font-medium text-muted-foreground">
       <span>Sun</span>

@@ -9,7 +9,7 @@ const emit = defineEmits<{ "update:modelValue": [value: string | number], change
 
 <template>
   <div :class="cn('relative w-full', props.class)">
-    <UIcon v-if="icon" :name="icon" class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+    <Icon v-if="icon" :name="icon" class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
     <input
       v-bind="$attrs"
       :value="modelValue"

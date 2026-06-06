@@ -47,12 +47,12 @@ function onClick(event: MouseEvent) {
 <template>
   <NuxtLink v-if="to" :to="to" :external="external" :class="classes" @click="onClick">
     <Loader2 v-if="loading" class="size-4 animate-spin" />
-    <UIcon v-else-if="icon" :name="icon" class="size-4" />
+    <Icon v-else-if="icon" :name="icon" class="size-4" />
     <slot />
   </NuxtLink>
   <button v-else :type="type" :class="classes" :disabled="disabled || loading" @click="onClick">
     <Loader2 v-if="loading" class="size-4 animate-spin" />
-    <UIcon v-else-if="icon" :name="icon" class="size-4" />
+    <Icon v-else-if="icon" :name="icon" class="size-4" />
     <slot />
   </button>
 </template>

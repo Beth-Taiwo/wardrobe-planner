@@ -31,7 +31,7 @@ async function submitRegister() {
 
 <template>
   <section class="app-auth">
-    <UCard class="app-auth-card" variant="subtle">
+    <Card class="app-auth-card" variant="subtle">
       <template #header>
         <div class="space-y-1">
           <p class="app-eyebrow">Wardrobe planner</p>
@@ -41,26 +41,26 @@ async function submitRegister() {
       </template>
 
       <div class="space-y-4">
-        <UAlert v-if="error" color="error" variant="soft" icon="i-heroicons-exclamation-triangle" :title="error" />
+        <Alert v-if="error" color="error" variant="soft" icon="i-heroicons-exclamation-triangle" :title="error" />
 
-        <UForm :state="{ displayName, email, password }" class="grid w-full gap-4" @submit.prevent="submitRegister">
-          <UFormField label="Display name" class="w-full">
-            <UInput v-model="displayName" class="w-full" autocomplete="name" icon="i-heroicons-user" />
-          </UFormField>
-          <UFormField label="Email" class="w-full">
-            <UInput v-model="email" class="w-full" type="email" autocomplete="email" icon="i-heroicons-envelope" required />
-          </UFormField>
-          <UFormField label="Password" class="w-full">
-            <UInput v-model="password" class="w-full" type="password" autocomplete="new-password" icon="i-heroicons-lock-closed" required />
-          </UFormField>
-          <UButton type="submit" block icon="i-heroicons-user-plus" :loading="loading">Create account</UButton>
-        </UForm>
+        <Form :state="{ displayName, email, password }" class="grid w-full gap-4" @submit.prevent="submitRegister">
+          <FormField label="Display name" class="w-full">
+            <Input v-model="displayName" class="w-full" autocomplete="name" icon="i-heroicons-user" />
+          </FormField>
+          <FormField label="Email" class="w-full">
+            <Input v-model="email" class="w-full" type="email" autocomplete="email" icon="i-heroicons-envelope" required />
+          </FormField>
+          <FormField label="Password" class="w-full">
+            <Input v-model="password" class="w-full" type="password" autocomplete="new-password" icon="i-heroicons-lock-closed" required />
+          </FormField>
+          <Button type="submit" block icon="i-heroicons-user-plus" :loading="loading">Create account</Button>
+        </Form>
 
-        <USeparator label="or" />
+        <Separator label="or" />
 
-        <UButton variant="outline" icon="i-heroicons-globe-alt" block to="/api/auth/google" external>
+        <Button variant="outline" icon="i-heroicons-globe-alt" block to="/api/auth/google" external>
           Continue with Google
-        </UButton>
+        </Button>
 
         <p class="text-center text-sm text-muted">
           Already have an account?
@@ -69,6 +69,6 @@ async function submitRegister() {
           </NuxtLink>
         </p>
       </div>
-    </UCard>
+    </Card>
   </section>
 </template>

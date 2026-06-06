@@ -26,7 +26,7 @@ async function submitLogin() {
 
 <template>
   <section class="app-auth">
-    <UCard class="app-auth-card" variant="subtle">
+    <Card class="app-auth-card" variant="subtle">
       <template #header>
         <div class="space-y-1">
           <p class="app-eyebrow">Wardrobe planner</p>
@@ -36,23 +36,23 @@ async function submitLogin() {
       </template>
 
       <div class="space-y-4">
-        <UAlert v-if="error" color="error" variant="soft" icon="i-heroicons-exclamation-triangle" :title="error" />
+        <Alert v-if="error" color="error" variant="soft" icon="i-heroicons-exclamation-triangle" :title="error" />
 
-        <UForm :state="{ email, password }" class="grid w-full gap-4" @submit.prevent="submitLogin">
-          <UFormField label="Email" class="w-full">
-            <UInput v-model="email" class="w-full" type="email" autocomplete="email" icon="i-heroicons-envelope" required />
-          </UFormField>
-          <UFormField label="Password" class="w-full">
-            <UInput v-model="password" class="w-full" type="password" autocomplete="current-password" icon="i-heroicons-lock-closed" required />
-          </UFormField>
-          <UButton type="submit" block icon="i-heroicons-arrow-right" :loading="loading">Sign in</UButton>
-        </UForm>
+        <Form :state="{ email, password }" class="grid w-full gap-4" @submit.prevent="submitLogin">
+          <FormField label="Email" class="w-full">
+            <Input v-model="email" class="w-full" type="email" autocomplete="email" icon="i-heroicons-envelope" required />
+          </FormField>
+          <FormField label="Password" class="w-full">
+            <Input v-model="password" class="w-full" type="password" autocomplete="current-password" icon="i-heroicons-lock-closed" required />
+          </FormField>
+          <Button type="submit" block icon="i-heroicons-arrow-right" :loading="loading">Sign in</Button>
+        </Form>
 
-        <USeparator label="or" />
+        <Separator label="or" />
 
-        <UButton variant="outline" icon="i-heroicons-globe-alt" block to="/api/auth/google" external>
+        <Button variant="outline" icon="i-heroicons-globe-alt" block to="/api/auth/google" external>
           Continue with Google
-        </UButton>
+        </Button>
 
         <p class="text-center text-sm text-muted">
           Need an account?
@@ -61,6 +61,6 @@ async function submitLogin() {
           </NuxtLink>
         </p>
       </div>
-    </UCard>
+    </Card>
   </section>
 </template>

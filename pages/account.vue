@@ -80,10 +80,10 @@ async function deleteAccount() {
       </div>
     </header>
 
-    <UAlert v-if="error" color="error" variant="soft" :title="error" />
+    <Alert v-if="error" color="error" variant="soft" :title="error" />
 
     <div class="grid gap-5 lg:grid-cols-2">
-      <UCard class="app-panel" variant="subtle">
+      <Card class="app-panel" variant="subtle">
         <template #header>
           <div>
             <h2 class="text-lg font-semibold">Profile</h2>
@@ -91,64 +91,64 @@ async function deleteAccount() {
           </div>
         </template>
         <div class="mt-4 grid gap-4">
-          <UFormField label="Display name">
-            <UInput v-model="displayName" icon="i-heroicons-user" />
-          </UFormField>
-          <UButton block icon="i-heroicons-check" :loading="profileLoading" @click="saveProfile">
+          <FormField label="Display name">
+            <Input v-model="displayName" icon="i-heroicons-user" />
+          </FormField>
+          <Button block icon="i-heroicons-check" :loading="profileLoading" @click="saveProfile">
             Save profile
-          </UButton>
+          </Button>
         </div>
-      </UCard>
+      </Card>
 
-      <UCard class="app-panel" variant="subtle">
+      <Card class="app-panel" variant="subtle">
         <template #header>
           <h2 class="text-lg font-semibold">Password</h2>
         </template>
         <div class="mt-4 grid gap-4">
-          <UFormField v-if="data?.user?.hasPassword" label="Current password">
-            <UInput v-model="currentPassword" type="password" autocomplete="current-password" icon="i-heroicons-lock-closed" />
-          </UFormField>
-          <UFormField label="New password">
-            <UInput v-model="newPassword" type="password" autocomplete="new-password" icon="i-heroicons-key" />
-          </UFormField>
-          <UButton block icon="i-heroicons-shield-check" :loading="passwordLoading" :disabled="newPassword.length < 8" @click="changePassword">
+          <FormField v-if="data?.user?.hasPassword" label="Current password">
+            <Input v-model="currentPassword" type="password" autocomplete="current-password" icon="i-heroicons-lock-closed" />
+          </FormField>
+          <FormField label="New password">
+            <Input v-model="newPassword" type="password" autocomplete="new-password" icon="i-heroicons-key" />
+          </FormField>
+          <Button block icon="i-heroicons-shield-check" :loading="passwordLoading" :disabled="newPassword.length < 8" @click="changePassword">
             {{ data?.user?.hasPassword ? 'Change password' : 'Set password' }}
-          </UButton>
+          </Button>
         </div>
-      </UCard>
+      </Card>
 
-      <UCard class="app-panel" variant="subtle">
+      <Card class="app-panel" variant="subtle">
         <template #header>
           <h2 class="text-lg font-semibold">Linked accounts</h2>
         </template>
         <div class="mt-4 flex items-center justify-between">
           <span class="inline-flex items-center gap-2">
-            <UIcon name="i-heroicons-globe-alt" class="h-5 w-5" />
+            <Icon name="i-heroicons-globe-alt" class="h-5 w-5" />
             Google
           </span>
-          <UBadge :color="data?.user?.linkedProviders.includes('google') ? 'success' : 'neutral'" variant="soft">
+          <Badge :color="data?.user?.linkedProviders.includes('google') ? 'success' : 'neutral'" variant="soft">
             {{ data?.user?.linkedProviders.includes('google') ? 'Linked' : 'Not linked' }}
-          </UBadge>
+          </Badge>
         </div>
-        <UButton class="mt-4" variant="outline" icon="i-heroicons-globe-alt" to="/api/auth/google" external block>
+        <Button class="mt-4" variant="outline" icon="i-heroicons-globe-alt" to="/api/auth/google" external block>
           Continue with Google
-        </UButton>
-      </UCard>
+        </Button>
+      </Card>
 
-      <UCard class="app-panel" variant="subtle">
+      <Card class="app-panel" variant="subtle">
         <template #header>
           <h2 class="text-lg font-semibold">Delete account</h2>
         </template>
-        <UAlert
+        <Alert
           color="error"
           variant="soft"
           icon="i-heroicons-exclamation-triangle"
           title="This removes your account, sessions, linked accounts, wardrobe, calendar entries, and outfit history."
         />
-        <UButton class="mt-4" color="error" variant="outline" block :loading="deleteLoading" @click="deleteAccount">
+        <Button class="mt-4" color="error" variant="outline" block :loading="deleteLoading" @click="deleteAccount">
           Delete account
-        </UButton>
-      </UCard>
+        </Button>
+      </Card>
     </div>
   </section>
 </template>
