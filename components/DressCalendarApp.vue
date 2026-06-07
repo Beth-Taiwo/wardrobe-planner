@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { parseDate, type DateValue } from '@internationalized/date'
-import { computed, nextTick, onBeforeUnmount, reactive, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import type { ClothingItem, DressEntry, OutfitPlan } from '~/types/dress'
 
 interface DressForm {
@@ -111,7 +111,7 @@ const batchClothesUploadLoading = ref(false)
 const batchClothesError = ref("")
 const batchImageDrafts = ref<BatchClothingDraft[]>([])
 const wardrobeViewMode = ref<'grid' | 'list'>('grid')
-const showAddClothesForm = ref(true)
+const showAddClothesForm = ref(false)
 const clothingError = ref("")
 const editingEntryId = ref<string | null>(null)
 const editingClothingItemId = ref<string | null>(null)
@@ -258,6 +258,12 @@ watch(dresses, () => {
 watch(clothingDeleteConfirmOpen, (open) => {
   if (!open && !clothingDeleteLoading.value) {
     clothingItemPendingDelete.value = null
+  }
+})
+
+watch(showAddClothesForm, (open) => {
+  if (!open && !clothingSaveLoading.value && !clothingUploadLoading.value) {
+    clearClothingForm()
   }
 })
 
@@ -1132,7 +1138,7 @@ function toDateString(year: number, month: number, day: number) {
         </div>
       </section>
 
-      <div v-if="activeTab === 'wardrobe'" class="grid gap-6" :class="showAddClothesForm ? 'lg:grid-cols-[minmax(0,1fr)_380px]' : 'lg:grid-cols-1'">
+      <div v-if="activeTab === 'wardrobe'" class="grid gap-6">
         <section class="app-panel app-panel-pad">
           <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -1141,7 +1147,6 @@ function toDateString(year: number, month: number, day: number) {
             </div>
             <div class="flex flex-wrap items-center gap-2">
               <Button
-                v-if="!showAddClothesForm"
                 type="button"
                 @click="clearClothingForm(); showAddClothesForm = true"
               >
@@ -1164,7 +1169,7 @@ function toDateString(year: number, month: number, day: number) {
             </div>
           </div>
 
-          <div v-if="clothingItems?.length && wardrobeViewMode === 'grid'" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div v-if="clothingItems?.length && wardrobeViewMode === 'grid'" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-6">
             <article
               v-for="item in clothingItems"
               :key="item.id"
@@ -1213,72 +1218,78 @@ function toDateString(year: number, month: number, day: number) {
           </div>
         </section>
 
-        <aside v-if="showAddClothesForm" class="app-panel app-panel-pad">
-          <div class="mb-4 flex items-center justify-between gap-3">
-            <h2 class="text-lg font-semibold">{{ editingClothingItemId ?"Edit clothes" :"Add clothes" }}</h2>
-            <Button
-              type="button"
-              variant="outline" size="icon"
-              aria-label="Close add clothes form"
-              @click="showAddClothesForm = false; clearClothingForm()"
-            />
-          </div>
+        <Drawer v-model:open="showAddClothesForm" direction="bottom">
+          <DrawerContent class="max-h-[88vh] overflow-hidden">
+            <div class="mx-auto flex max-h-[88vh] w-full max-w-3xl flex-col px-4 pb-6 sm:px-6">
+              <DrawerHeader class="shrink-0 px-0 text-left">
+                <DrawerTitle>{{ editingClothingItemId ?"Edit clothes" :"Add clothes" }}</DrawerTitle>
+                <DrawerDescription>
+                  {{ editingClothingItemId ?"Update this wardrobe piece." :"Add a wardrobe piece." }}
+                </DrawerDescription>
+              </DrawerHeader>
 
-          <Alert v-if="clothingError" variant="destructive" class="mb-4">
-            <AlertTitle>{{ clothingError }}</AlertTitle>
-          </Alert>
+              <Alert v-if="clothingError" variant="destructive" class="mb-4">
+                <AlertTitle>{{ clothingError }}</AlertTitle>
+              </Alert>
 
-          <div class="space-y-4">
-            <div class="block overflow-hidden transition">
-              <div class="app-media relative flex aspect-square items-center justify-center">
-                <img v-if="clothingImageDisplayUrl" :src="clothingImageDisplayUrl" alt="" class="h-full w-full object-cover">
-                <span v-else class="px-3 text-center text-sm font-medium">
-                  {{ clothingUploadLoading ?"Uploading..." :"Click to add image" }}
-                </span>
-                <span v-if="clothingImageDisplayUrl" class="absolute bottom-2 left-2 rounded bg-white/90 px-2 py-1 text-xs font-medium shadow-sm">
-                  {{ clothingUploadLoading ?"Uploading..." :"Change image" }}
-                </span>
+              <div class="grid min-h-0 flex-1 items-stretch gap-4 md:grid-cols-[minmax(220px,0.8fr)_minmax(0,1fr)]">
+                <div class="flex min-h-0 flex-col overflow-hidden transition">
+                  <div class="app-media relative flex aspect-square max-h-full min-h-0 flex-1 items-center justify-center md:aspect-auto">
+                    <img v-if="clothingImageDisplayUrl" :src="clothingImageDisplayUrl" alt="" class="h-full w-full object-cover">
+                    <span v-else class="px-3 text-center text-sm font-medium">
+                      {{ clothingUploadLoading ?"Uploading..." :"Click to add image" }}
+                    </span>
+                    <span v-if="clothingImageDisplayUrl" class="absolute bottom-2 left-2 rounded bg-white/90 px-2 py-1 text-xs font-medium shadow-sm">
+                      {{ clothingUploadLoading ?"Uploading..." :"Change image" }}
+                    </span>
+                  </div>
+                  <Input class="mt-3" type="file" accept="image/*" :disabled="clothingSaveLoading || clothingUploadLoading" @change="uploadClothingImage" />
+                </div>
+
+                <div class="space-y-4">
+                  <div class="grid gap-2">
+                    <Label for="clothing-name">Name <span class="text-muted">(optional)</span></Label>
+                    <Input id="clothing-name" v-model="clothingForm.name" placeholder="Yellow Ankara top" />
+                  </div>
+
+                  <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div class="grid gap-2">
+                      <Label for="clothing-label">Label</Label>
+                      <NativeSelect id="clothing-label" v-model="clothingForm.label">
+                        <NativeSelectOption value="">No label</NativeSelectOption>
+                        <NativeSelectOption v-for="item in clothingLabelOptions" :key="item" :value="item">{{ item }}</NativeSelectOption>
+                      </NativeSelect>
+                    </div>
+                    <div class="grid gap-2">
+                      <Label for="clothing-color">Color</Label>
+                      <Input id="clothing-color" v-model="clothingForm.color" placeholder="Yellow" />
+                    </div>
+                  </div>
+
+                  <div class="grid gap-2">
+                    <Label for="clothing-notes">Notes</Label>
+                    <Textarea id="clothing-notes" v-model="clothingForm.notes" :rows="3" placeholder="Fabric, fit, occasion" />
+                  </div>
+                </div>
               </div>
-              <Input class="mt-3" type="file" accept="image/*" :disabled="clothingSaveLoading || clothingUploadLoading" @change="uploadClothingImage" />
-            </div>
 
-            <div class="grid gap-2">
-              <Label for="clothing-name">Name <span class="text-muted">(optional)</span></Label>
-              <Input id="clothing-name" v-model="clothingForm.name" placeholder="Yellow Ankara top" />
+              <DrawerFooter class="shrink-0 px-0 pb-0 sm:flex-row sm:justify-end">
+                <Button
+                  v-if="editingClothingItemId"
+                  type="button"
+                  variant="outline"
+                  :disabled="clothingDeleteLoading"
+                  @click="deleteEditingClothingItem"
+                >
+                  Delete clothes
+                </Button>
+                <Button type="button" :disabled="clothingSaveLoading" @click="createClothingItem(false)">
+                  {{ clothingSaveLoading ?"Saving..." : editingClothingItemId ?"Save changes" :"Add clothes" }}
+                </Button>
+              </DrawerFooter>
             </div>
-
-            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div class="grid gap-2">
-                <Label for="clothing-label">Label</Label>
-                <NativeSelect id="clothing-label" v-model="clothingForm.label">
-                  <NativeSelectOption value="">No label</NativeSelectOption>
-                  <NativeSelectOption v-for="item in clothingLabelOptions" :key="item" :value="item">{{ item }}</NativeSelectOption>
-                </NativeSelect>
-              </div>
-              <div class="grid gap-2">
-                <Label for="clothing-color">Color</Label>
-                <Input id="clothing-color" v-model="clothingForm.color" placeholder="Yellow" />
-              </div>
-            </div>
-
-            <div class="grid gap-2">
-              <Label for="clothing-notes">Notes</Label>
-              <Textarea id="clothing-notes" v-model="clothingForm.notes" :rows="3" placeholder="Fabric, fit, occasion" />
-            </div>
-
-            <Button type="button" class="w-full justify-center" :disabled="clothingSaveLoading" @click="createClothingItem(false)">
-              {{ clothingSaveLoading ?"Saving..." : editingClothingItemId ?"Save changes" :"Add clothes" }}
-            </Button>
-            <Button
-              v-if="editingClothingItemId"
-              type="button"
-              class="w-full justify-center" :disabled="clothingDeleteLoading"
-              @click="deleteEditingClothingItem"
-            >
-              Delete clothes
-            </Button>
-          </div>
-        </aside>
+          </DrawerContent>
+        </Drawer>
       </div>
 
       <div v-if="activeTab === 'calendar'" class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
