@@ -24,20 +24,21 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const name = typeof body.name === "string" ? body.name.trim() : ""
   const label = typeof body.label === "string" ? body.label.trim() : ""
+  const imageUrl = cleanOptional(body.imageUrl)
 
-  if (!name) {
-    throw createError({ statusCode: 400, statusMessage: "Clothing name is required." })
+  if (!name && !imageUrl) {
+    throw createError({ statusCode: 400, statusMessage: "Add a clothing name or image." })
   }
 
-  if (!allowedLabels.has(label)) {
+  if (label && !allowedLabels.has(label)) {
     throw createError({ statusCode: 400, statusMessage: "Choose a valid clothing label." })
   }
 
   return await createClothingItem(user.id, {
-    name,
+    name: name || `New ${label || "clothing piece"}`,
     label,
     color: cleanOptional(body.color),
-    imageUrl: cleanOptional(body.imageUrl),
+    imageUrl,
     notes: cleanOptional(body.notes)
   })
 })

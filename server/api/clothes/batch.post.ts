@@ -34,22 +34,23 @@ export default defineEventHandler(async (event) => {
   for (const [index, item] of items.entries()) {
     const name = typeof item?.name === "string" ? item.name.trim() : ""
     const label = typeof item?.label === "string" ? item.label.trim() : ""
+    const imageUrl = cleanOptional(item.imageUrl)
 
-    if (!name) {
-      skipped.push({ index, reason: "Missing name." })
+    if (!name && !imageUrl) {
+      skipped.push({ index, reason: "Missing name or image." })
       continue
     }
 
-    if (!allowedLabels.has(label)) {
+    if (label && !allowedLabels.has(label)) {
       skipped.push({ index, name, reason: "Invalid label." })
       continue
     }
 
     created.push(await createClothingItem(user.id, {
-      name,
+      name: name || `New ${label || "clothing piece"}`,
       label,
       color: cleanOptional(item.color),
-      imageUrl: cleanOptional(item.imageUrl),
+      imageUrl,
       notes: cleanOptional(item.notes)
     }))
   }

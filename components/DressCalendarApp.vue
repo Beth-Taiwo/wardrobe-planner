@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { parseDate, type DateValue } from '@internationalized/date'
-import { computed, nextTick, reactive, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, reactive, ref } from 'vue'
 import type { ClothingItem, DressEntry, OutfitPlan } from '~/types/dress'
 
 interface DressForm {
@@ -100,6 +100,8 @@ const importPreviewLoading = ref(false)
 const normalizingCategories = ref(false)
 const clothingSaveLoading = ref(false)
 const clothingUploadLoading = ref(false)
+const pendingClothingImageFile = ref<File | null>(null)
+const clothingImagePreviewUrl = ref("")
 const clothingDeleteLoading = ref(false)
 const clothingDeleteConfirmOpen = ref(false)
 const clothingItemPendingDelete = ref<ClothingItem | null>(null)
@@ -160,7 +162,7 @@ const form = reactive<DressForm>({
 
 const clothingForm = reactive<ClothingForm>({
   name: '',
-  label: 'Dress',
+  label: '',
   color: '',
   imageUrl: '',
   notes: ''
@@ -175,10 +177,13 @@ const selectedClothingItems = computed(() => {
   const selectedIds = new Set(form.clothingItemIds)
   return (clothingItems.value || []).filter((item) => selectedIds.has(item.id))
 })
+const clothingImageDisplayUrl = computed(() => clothingImagePreviewUrl.value || clothingForm.imageUrl)
 const validBatchClothes = computed(() =>
-  batchImageDrafts.value.filter((item) => item.name.trim() && normalizeClothingLabel(item.label)).map((item) => ({
+  batchImageDrafts.value.filter((item) =>
+    (item.name.trim() || item.imageUrl.trim()) && normalizeClothingLabel(item.label) !== null
+  ).map((item) => ({
     ...item,
-    label: normalizeClothingLabel(item.label)
+    label: normalizeClothingLabel(item.label) ||""
   }))
 )
 const calendarDays = computed(() => buildCalendarDays(monthCursor.value))
@@ -554,10 +559,20 @@ async function normalizeCategories() {
 
 async function createClothingItem(attachToCurrentOutfit = true) {
   clothingError.value =""
+
+  if (!clothingForm.name.trim() && !clothingForm.imageUrl.trim() && !pendingClothingImageFile.value) {
+    clothingError.value ="Add a clothing name or image."
+    return
+  }
+
   clothingSaveLoading.value = true
 
   try {
     const isEditing = Boolean(editingClothingItemId.value)
+    if (pendingClothingImageFile.value) {
+      await uploadPendingClothingImage()
+    }
+
     const item = await $fetch<ClothingItem>(isEditing ?"/api/clothes/" + editingClothingItemId.value :"/api/clothes", {
       method: isEditing ?"PUT" :"POST",
       body: clothingForm
@@ -579,7 +594,11 @@ async function createClothingItem(attachToCurrentOutfit = true) {
 
 function normalizeClothingLabel(label: string) {
   const normalized = label.trim().toLowerCase()
-  return clothingLabelOptions.find((option) => option.toLowerCase() === normalized) ||""
+  if (!normalized) {
+    return null
+  }
+
+  return clothingLabelOptions.find((option) => option.toLowerCase() === normalized) || null
 }
 
 function clothingNameFromFileName(fileName: string) {
@@ -613,7 +632,7 @@ async function uploadBatchClothingImages(event: Event) {
       })
       uploaded.push({
         name: clothingNameFromFileName(file.name) ||"New clothing piece",
-        label:"Dress",
+        label:"",
         color:"",
         imageUrl: result.imageUrl,
         notes:""
@@ -660,10 +679,19 @@ async function importBatchClothingItems() {
   }
 }
 
+function clearPendingClothingImage() {
+  if (clothingImagePreviewUrl.value) {
+    URL.revokeObjectURL(clothingImagePreviewUrl.value)
+  }
+  pendingClothingImageFile.value = null
+  clothingImagePreviewUrl.value =""
+}
+
 function clearClothingForm() {
   editingClothingItemId.value = null
+  clearPendingClothingImage()
   clothingForm.name =""
-  clothingForm.label ="Dress"
+  clothingForm.label =""
   clothingForm.color =""
   clothingForm.imageUrl =""
   clothingForm.notes =""
@@ -672,6 +700,7 @@ function clearClothingForm() {
 function editClothingItem(item: ClothingItem) {
   clothingError.value =""
   editingClothingItemId.value = item.id
+  clearPendingClothingImage()
   clothingForm.name = item.name
   clothingForm.label = item.label
   clothingForm.color = item.color ||""
@@ -730,6 +759,21 @@ async function uploadClothingImage(event: Event) {
   }
 
   clothingError.value =""
+  clearPendingClothingImage()
+  pendingClothingImageFile.value = file
+  clothingImagePreviewUrl.value = URL.createObjectURL(file)
+  if (!clothingForm.name.trim()) {
+    clothingForm.name = clothingNameFromFileName(file.name) ||"New clothing piece"
+  }
+  input.value =""
+}
+
+async function uploadPendingClothingImage() {
+  const file = pendingClothingImageFile.value
+  if (!file) {
+    return
+  }
+
   clothingUploadLoading.value = true
 
   try {
@@ -740,13 +784,18 @@ async function uploadClothingImage(event: Event) {
       body
     })
     clothingForm.imageUrl = result.imageUrl
+    clearPendingClothingImage()
   } catch (error: any) {
     clothingError.value = error?.statusMessage || error?.data?.statusMessage ||"Could not upload this image."
+    throw error
   } finally {
     clothingUploadLoading.value = false
-    input.value =""
   }
 }
+
+onBeforeUnmount(() => {
+  clearPendingClothingImage()
+})
 
 
 async function previewImportEntries() {
@@ -1182,19 +1231,19 @@ function toDateString(year: number, month: number, day: number) {
           <div class="space-y-4">
             <div class="block overflow-hidden transition">
               <div class="app-media relative flex aspect-square items-center justify-center">
-                <img v-if="clothingForm.imageUrl" :src="clothingForm.imageUrl" alt="" class="h-full w-full object-cover">
+                <img v-if="clothingImageDisplayUrl" :src="clothingImageDisplayUrl" alt="" class="h-full w-full object-cover">
                 <span v-else class="px-3 text-center text-sm font-medium">
                   {{ clothingUploadLoading ?"Uploading..." :"Click to add image" }}
                 </span>
-                <span v-if="clothingForm.imageUrl" class="absolute bottom-2 left-2 rounded bg-white/90 px-2 py-1 text-xs font-medium shadow-sm">
+                <span v-if="clothingImageDisplayUrl" class="absolute bottom-2 left-2 rounded bg-white/90 px-2 py-1 text-xs font-medium shadow-sm">
                   {{ clothingUploadLoading ?"Uploading..." :"Change image" }}
                 </span>
               </div>
-              <Input class="mt-3" type="file" accept="image/*" :disabled="clothingUploadLoading" @change="uploadClothingImage" />
+              <Input class="mt-3" type="file" accept="image/*" :disabled="clothingSaveLoading || clothingUploadLoading" @change="uploadClothingImage" />
             </div>
 
             <div class="grid gap-2">
-              <Label for="clothing-name">Name</Label>
+              <Label for="clothing-name">Name <span class="text-muted">(optional)</span></Label>
               <Input id="clothing-name" v-model="clothingForm.name" placeholder="Yellow Ankara top" />
             </div>
 
@@ -1202,6 +1251,7 @@ function toDateString(year: number, month: number, day: number) {
               <div class="grid gap-2">
                 <Label for="clothing-label">Label</Label>
                 <NativeSelect id="clothing-label" v-model="clothingForm.label">
+                  <NativeSelectOption value="">No label</NativeSelectOption>
                   <NativeSelectOption v-for="item in clothingLabelOptions" :key="item" :value="item">{{ item }}</NativeSelectOption>
                 </NativeSelect>
               </div>
@@ -1216,8 +1266,8 @@ function toDateString(year: number, month: number, day: number) {
               <Textarea id="clothing-notes" v-model="clothingForm.notes" :rows="3" placeholder="Fabric, fit, occasion" />
             </div>
 
-            <Button type="button" class="w-full justify-center" :disabled="clothingSaveLoading || !clothingForm.name.trim()" @click="createClothingItem(false)">
-              {{ editingClothingItemId ?"Save changes" :"Add clothes" }}
+            <Button type="button" class="w-full justify-center" :disabled="clothingSaveLoading" @click="createClothingItem(false)">
+              {{ clothingSaveLoading ?"Saving..." : editingClothingItemId ?"Save changes" :"Add clothes" }}
             </Button>
             <Button
               v-if="editingClothingItemId"
@@ -1408,6 +1458,7 @@ function toDateString(year: number, month: number, day: number) {
               <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <Input v-model="clothingForm.name" placeholder="Piece name" />
                 <NativeSelect v-model="clothingForm.label">
+                  <NativeSelectOption value="">No label</NativeSelectOption>
                   <NativeSelectOption v-for="item in clothingLabelOptions" :key="item" :value="item">{{ item }}</NativeSelectOption>
                 </NativeSelect>
                 <Input v-model="clothingForm.color" placeholder="Piece color" />
@@ -1416,7 +1467,7 @@ function toDateString(year: number, month: number, day: number) {
 
               <div class="flex flex-wrap items-center gap-2">
                 <Input class="w-auto" type="file" accept="image/*" :disabled="clothingUploadLoading" @change="uploadClothingImage" />
-                <Button type="button" variant="outline" :disabled="clothingSaveLoading || !clothingForm.name.trim()" @click="createClothingItem">
+                <Button type="button" variant="outline" :disabled="clothingSaveLoading || clothingUploadLoading" @click="createClothingItem">
                   Add piece
                 </Button>
               </div>

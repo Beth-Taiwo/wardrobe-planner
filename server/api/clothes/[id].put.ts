@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: "Clothing name is required." })
   }
 
-  if (!allowedLabels.has(label)) {
+  if (label && !allowedLabels.has(label)) {
     throw createError({ statusCode: 400, statusMessage: "Choose a valid clothing label." })
   }
 

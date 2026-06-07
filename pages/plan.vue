@@ -51,7 +51,7 @@ const form = reactive<PlanForm>({
 
 const clothingForm = reactive<ClothingForm>({
   name: "",
-  label: "Dress",
+  label: "",
   color: "",
   imageUrl: "",
   notes: ""
@@ -64,7 +64,7 @@ const clothingSaveLoading = ref(false)
 const clothingError = ref("")
 const suggestionLoading = ref(false)
 const suggestionResults = ref<DressSuggestion[]>([])
-const showAddPiece = ref(false)
+const showAddPiece = ref(true)
 const planDateOpen = ref(false)
 const clothingLabelOptions = ["Blouse", "Shirt", "Skirt", "Dress", "Gown", "Trousers", "Jeans", "Kimono", "Boubou", "Jacket", "Top", "Shoes", "Accessory", "Other"]
 
@@ -127,6 +127,8 @@ watch(existingPlan, (plan) => {
   form.eventName = plan.eventName
   form.prepNotes = plan.prepNotes || ""
   form.clothingItemIds = plan.clothingItems.map((item) => item.id)
+  showAddPiece.value = false
+  clearClothingForm()
 }, { immediate: true })
 
 watch([routePlanId, () => route.query.date], ([id]) => {
@@ -174,6 +176,12 @@ async function startAnotherPlan(date = form.date) {
 
 async function createClothingItem() {
   clothingError.value = ""
+
+  if (!clothingForm.name.trim() && !clothingForm.imageUrl.trim()) {
+    clothingError.value = "Add a clothing name or image."
+    return
+  }
+
   clothingSaveLoading.value = true
 
   try {
@@ -184,7 +192,6 @@ async function createClothingItem() {
 
     form.clothingItemIds = [...new Set([...form.clothingItemIds, item.id])]
     clearClothingForm()
-    showAddPiece.value = false
     toast.add({ title: "Clothing piece attached", color: "green" })
     await refreshClothingItems()
   } catch (error: any) {
@@ -239,7 +246,7 @@ function toggleClothingItem(id: string) {
 
 function clearClothingForm() {
   clothingForm.name = ""
-  clothingForm.label = "Dress"
+  clothingForm.label = ""
   clothingForm.color = ""
   clothingForm.imageUrl = ""
   clothingForm.notes = ""
@@ -260,6 +267,8 @@ function resetNewPlanForm() {
   form.clothingItemIds = []
   saveError.value = ""
   suggestionResults.value = []
+  showAddPiece.value = true
+  clearClothingForm()
 }
 </script>
 
@@ -328,7 +337,7 @@ function resetNewPlanForm() {
                 {{ suggestionLoading ? "Checking" : "Suggest" }}
               </Button>
               <Button type="button" @click="showAddPiece = !showAddPiece">
-                Add piece
+                {{ showAddPiece ? "Hide empty piece" : "Add piece" }}
               </Button>
             </div>
           </div>
@@ -372,14 +381,18 @@ function resetNewPlanForm() {
         </div>
 
         <section v-if="showAddPiece" class="app-card p-4">
+          <div class="mb-3">
+            <h3 class="text-sm font-semibold">New piece</h3>
+          </div>
           <div class="grid gap-3 sm:grid-cols-2">
             <div class="grid gap-2">
-              <Label for="new-piece-name">Piece name</Label>
+              <Label for="new-piece-name">Piece name <span class="text-muted">(optional)</span></Label>
               <Input id="new-piece-name" v-model="clothingForm.name" placeholder="Black trousers" />
             </div>
             <div class="grid gap-2">
               <Label for="new-piece-label">Type</Label>
               <NativeSelect id="new-piece-label" v-model="clothingForm.label">
+                <NativeSelectOption value="">No label</NativeSelectOption>
                 <NativeSelectOption v-for="label in clothingLabelOptions" :key="label" :value="label">{{ label }}</NativeSelectOption>
               </NativeSelect>
             </div>
@@ -401,7 +414,7 @@ function resetNewPlanForm() {
             <AlertDescription>{{ clothingError }}</AlertDescription>
           </Alert>
           <div class="mt-3 flex justify-end">
-            <Button type="button" :disabled="clothingSaveLoading || !clothingForm.name.trim()" @click="createClothingItem">
+            <Button type="button" :disabled="clothingSaveLoading" @click="createClothingItem">
               {{ clothingSaveLoading ? "Adding" : "Add and attach" }}
             </Button>
           </div>
