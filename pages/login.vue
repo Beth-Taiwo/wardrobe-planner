@@ -15,7 +15,7 @@ async function submitLogin() {
       body: { email: email.value, password: password.value }
     })
     await refreshNuxtData("current-user")
-    await navigateTo(typeof route.query.redirect === "string" ? route.query.redirect : "/calendar")
+    await navigateTo(typeof route.query.redirect === "string" ? route.query.redirect : "/wardrobe")
   } catch (err: any) {
     error.value = err?.data?.statusMessage || err?.statusMessage || "Could not sign in."
   } finally {
@@ -30,7 +30,7 @@ async function submitLogin() {
       <CardHeader>
         <p class="app-eyebrow">Wardrobe planner</p>
         <CardTitle>Sign in</CardTitle>
-        <CardDescription>Open your calendar, wardrobe, and outfit history.</CardDescription>
+        <CardDescription>Open your wardrobe and outfit history.</CardDescription>
       </CardHeader>
 
       <CardContent class="space-y-4">

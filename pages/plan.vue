@@ -66,7 +66,14 @@ const suggestionLoading = ref(false)
 const suggestionResults = ref<DressSuggestion[]>([])
 const showAddPiece = ref(true)
 const planDateOpen = ref(false)
+const planDrawerOpen = ref(true)
+const planStep = ref(1)
 const clothingLabelOptions = ["Blouse", "Shirt", "Skirt", "Dress", "Gown", "Trousers", "Jeans", "Kimono", "Boubou", "Jacket", "Top", "Shoes", "Accessory", "Other"]
+const planSteps = [
+  { number: 1, title: "Details", description: "Date and event" },
+  { number: 2, title: "Wardrobe", description: "Curate the look" },
+  { number: 3, title: "Finalize", description: "Notes and review" }
+]
 
 const { data: clothingItems, refresh: refreshClothingItems } = await useFetch<ClothingItem[]>("/api/clothes", {
   default: () => []
@@ -93,8 +100,12 @@ const visibleSameDayPlans = computed(() =>
   (sameDayPlans.value || []).filter((plan) => plan.id !== routePlanId.value)
 )
 const isEditing = computed(() => Boolean(routePlanId.value))
+const canContinueDetails = computed(() =>
+  form.date >= today && form.eventName.trim().length > 0
+)
+const canContinueWardrobe = computed(() => form.clothingItemIds.length > 0)
 const canSave = computed(() =>
-  form.date >= today && form.eventName.trim().length > 0 && form.clothingItemIds.length > 0
+  canContinueDetails.value && canContinueWardrobe.value
 )
 const planDateValue = computed<DateValue | undefined>({
   get: () => /^\d{4}-\d{2}-\d{2}$/.test(form.date) ? parseDate(form.date) : undefined,
@@ -167,6 +178,22 @@ async function savePlan() {
     saveError.value = error?.statusMessage || error?.data?.statusMessage || "Could not save this outfit plan."
   } finally {
     saveLoading.value = false
+  }
+}
+
+async function submitPlanFlow() {
+  if (planStep.value === 1) {
+    goToPlanStep(2)
+    return
+  }
+
+  if (planStep.value === 2) {
+    goToPlanStep(3)
+    return
+  }
+
+  if (canSave.value) {
+    await savePlan()
   }
 }
 
@@ -244,6 +271,18 @@ function toggleClothingItem(id: string) {
   }
 }
 
+function goToPlanStep(step: number) {
+  if (step > 1 && !canContinueDetails.value) {
+    return
+  }
+
+  if (step > 2 && !canContinueWardrobe.value) {
+    return
+  }
+
+  planStep.value = step
+}
+
 function clearClothingForm() {
   clothingForm.name = ""
   clothingForm.label = ""
@@ -268,222 +307,324 @@ function resetNewPlanForm() {
   saveError.value = ""
   suggestionResults.value = []
   showAddPiece.value = true
+  planStep.value = 1
   clearClothingForm()
 }
 </script>
 
 <template>
-  <header class="app-page-header">
-    <div>
-      <p class="app-eyebrow">Outfit planning</p>
-      <h1 class="app-title">{{ isEditing ? "Edit planned outfit" : "Plan outfit" }}</h1>
-      <p class="app-subtitle">
-        Name the event, choose the date, and attach the wardrobe pieces you plan to wear.
-      </p>
-    </div>
-
-    <div class="flex flex-wrap gap-2">
-      <Button as-child variant="outline">
-        <NuxtLink to="/insight">Insight</NuxtLink>
-      </Button>
-      <Button v-if="savedPlan" type="button" @click="startAnotherPlan(savedPlan.date)">
-        Another outfit same day
+  <section class="app-panel app-panel-pad">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <p class="app-eyebrow">Outfit planning</p>
+        <h1 class="app-title">{{ isEditing ? "Edit planned outfit" : "Plan outfit" }}</h1>
+        <p class="app-subtitle">
+          Open the drawer to build the plan.
+        </p>
+      </div>
+      <Button type="button" @click="planDrawerOpen = true">
+        Open planner
       </Button>
     </div>
-  </header>
+  </section>
 
-  <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-    <section class="app-panel app-panel-pad">
-      <form class="grid gap-5" @submit.prevent="savePlan">
-        <div class="grid gap-4 sm:grid-cols-2">
-          <div class="grid gap-2">
-            <Label for="plan-event">Event or occasion</Label>
-            <Input id="plan-event" v-model="form.eventName" placeholder="Team presentation" />
-          </div>
-
-          <div class="grid gap-2">
-            <Label for="plan-date">Date</Label>
-            <Popover v-model:open="planDateOpen">
-              <PopoverTrigger as-child>
-                <Button
-                  id="plan-date"
-                  type="button"
-                  variant="outline"
-                  class="h-10 justify-start gap-2 px-3 text-left font-normal"
-                >
-                  <CalendarIcon class="h-4 w-4" aria-hidden="true" />
-                  <span>{{ planDateLabel }}</span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent align="start">
-                <Calendar
-                  v-model="planDateValue"
-                  :min-value="minimumPlanDate"
-                  layout="month-and-year"
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-        </div>
-
-        <div class="grid gap-3">
-          <div class="flex flex-wrap items-center justify-between gap-3">
+  <Drawer v-model:open="planDrawerOpen" direction="bottom">
+    <DrawerContent class="max-h-[94vh] overflow-hidden">
+      <div class="mx-auto flex max-h-[94vh] w-full max-w-[1440px] flex-col px-4 pb-6 sm:px-6">
+        <DrawerHeader class="shrink-0 border-b border-default px-0 text-left">
+          <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h2 class="text-lg font-semibold">Outfit pieces</h2>
-              <p class="text-sm text-muted">Select at least one piece from your wardrobe.</p>
+              <p class="app-eyebrow">Outfit planning</p>
+              <DrawerTitle class="text-2xl">{{ isEditing ? "Edit planned outfit" : "Plan outfit" }}</DrawerTitle>
+              <DrawerDescription>
+                Name the event, choose the date, and attach the wardrobe pieces you plan to wear.
+              </DrawerDescription>
             </div>
+
             <div class="flex flex-wrap gap-2">
-              <Button type="button" variant="outline" :disabled="suggestionLoading" @click="suggestOutfit">
-                {{ suggestionLoading ? "Checking" : "Suggest" }}
+              <Button as-child variant="outline">
+                <NuxtLink to="/insight">Insight</NuxtLink>
               </Button>
-              <Button type="button" @click="showAddPiece = !showAddPiece">
-                {{ showAddPiece ? "Hide empty piece" : "Add piece" }}
+              <Button v-if="savedPlan" type="button" @click="startAnotherPlan(savedPlan.date)">
+                Another outfit same day
               </Button>
             </div>
           </div>
+        </DrawerHeader>
 
-          <div v-if="selectedClothingItems.length" class="grid gap-2 sm:grid-cols-2">
-            <div v-for="item in selectedClothingItems" :key="item.id" class="app-card flex gap-3 p-3">
-              <img v-if="item.imageUrl" :src="item.imageUrl" :alt="item.name" class="h-14 w-14 rounded-md object-cover">
-              <div v-else class="grid h-14 w-14 shrink-0 place-items-center rounded-md bg-muted text-xs font-semibold text-muted">
-                {{ item.label.slice(0, 2).toUpperCase() }}
-              </div>
-              <div class="min-w-0">
-                <p class="truncate text-sm font-semibold">{{ item.name }}</p>
-                <p class="text-xs text-muted">{{ [item.label, item.color].filter(Boolean).join(" - ") }}</p>
-              </div>
-            </div>
-          </div>
+        <div class="min-h-0 flex-1 overflow-y-auto py-5">
+          <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+            <section class="app-panel app-panel-pad">
+              <form class="grid gap-5" @submit.prevent="submitPlanFlow">
+                <div class="grid gap-2 sm:grid-cols-3">
+                  <button
+                    v-for="step in planSteps"
+                    :key="step.number"
+                    type="button"
+                    class="app-clickable flex items-center gap-3 p-3 text-left"
+                    :class="planStep === step.number ? 'ring-2 ring-primary' : ''"
+                    @click="goToPlanStep(step.number)"
+                  >
+                    <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+                      {{ step.number }}
+                    </span>
+                    <span class="min-w-0">
+                      <span class="block text-sm font-semibold">{{ step.title }}</span>
+                      <span class="block truncate text-xs text-muted">{{ step.description }}</span>
+                    </span>
+                  </button>
+                </div>
 
-          <div class="grid max-h-80 gap-2 overflow-auto rounded-lg border border-default p-2 sm:grid-cols-2">
-            <button
-              v-for="item in clothingItems"
-              :key="item.id"
-              type="button"
-              class="app-clickable flex items-center gap-3 p-3 text-left"
-              :class="form.clothingItemIds.includes(item.id) ? 'ring-2 ring-primary' : ''"
-              @click="toggleClothingItem(item.id)"
-            >
-              <img v-if="item.imageUrl" :src="item.imageUrl" :alt="item.name" class="h-12 w-12 rounded-md object-cover">
-              <span v-else class="grid h-12 w-12 shrink-0 place-items-center rounded-md bg-muted text-xs font-semibold text-muted">
-                {{ item.label.slice(0, 2).toUpperCase() }}
-              </span>
-              <span class="min-w-0">
-                <span class="block truncate text-sm font-semibold">{{ item.name }}</span>
-                <span class="block text-xs text-muted">{{ item.label }}</span>
-              </span>
-            </button>
+                <section v-if="planStep === 1" class="grid gap-5">
+                  <div>
+                    <h2 class="text-xl font-semibold">Start with the occasion</h2>
+                    <p class="mt-1 text-sm text-muted">Choose the date and name the event before opening your wardrobe.</p>
+                  </div>
 
-            <div v-if="!clothingItems?.length" class="p-3 text-sm text-muted">
-              Add one text-only clothing piece to save this plan.
-            </div>
+                  <div class="grid gap-4 sm:grid-cols-2">
+                    <div class="grid gap-2">
+                      <Label for="plan-event">Event or occasion</Label>
+                      <Input id="plan-event" v-model="form.eventName" placeholder="Team presentation" />
+                    </div>
+
+                    <div class="grid gap-2">
+                      <Label for="plan-date">Date</Label>
+                      <Popover v-model:open="planDateOpen">
+                        <PopoverTrigger as-child>
+                          <Button
+                            id="plan-date"
+                            type="button"
+                            variant="outline"
+                            class="h-10 justify-start gap-2 px-3 text-left font-normal"
+                          >
+                            <CalendarIcon class="h-4 w-4" aria-hidden="true" />
+                            <span>{{ planDateLabel }}</span>
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent align="start">
+                          <Calendar
+                            v-model="planDateValue"
+                            :min-value="minimumPlanDate"
+                            layout="month-and-year"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+
+                  <div class="flex justify-end">
+                    <Button type="button" :disabled="!canContinueDetails" @click="goToPlanStep(2)">
+                      Open wardrobe
+                    </Button>
+                  </div>
+                </section>
+
+                <section v-if="planStep === 2" class="grid gap-5">
+                  <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h2 class="text-xl font-semibold">Curate your look</h2>
+                      <p class="mt-1 text-sm text-muted">Select at least one piece from your wardrobe for {{ form.eventName || "this event" }}.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                      <Button type="button" variant="outline" :disabled="suggestionLoading" @click="suggestOutfit">
+                        {{ suggestionLoading ? "Checking" : "Suggest" }}
+                      </Button>
+                      <Button type="button" @click="showAddPiece = !showAddPiece">
+                        {{ showAddPiece ? "Hide empty piece" : "Add piece" }}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div v-if="selectedClothingItems.length" class="grid gap-2 sm:grid-cols-2">
+                    <div v-for="item in selectedClothingItems" :key="item.id" class="app-card flex gap-3 p-3">
+                      <img v-if="item.imageUrl" :src="item.imageUrl" :alt="item.name" class="h-14 w-14 rounded-md object-cover">
+                      <div v-else class="grid h-14 w-14 shrink-0 place-items-center rounded-md bg-muted text-xs font-semibold text-muted">
+                        {{ item.label.slice(0, 2).toUpperCase() }}
+                      </div>
+                      <div class="min-w-0">
+                        <p class="truncate text-sm font-semibold">{{ item.name }}</p>
+                        <p class="text-xs text-muted">{{ [item.label, item.color].filter(Boolean).join(" - ") }}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="grid max-h-[34rem] gap-2 overflow-auto rounded-lg border border-default p-2 sm:grid-cols-2 xl:grid-cols-3">
+                    <button
+                      v-for="item in clothingItems"
+                      :key="item.id"
+                      type="button"
+                      class="app-clickable flex items-center gap-3 p-3 text-left"
+                      :class="form.clothingItemIds.includes(item.id) ? 'ring-2 ring-primary' : ''"
+                      @click="toggleClothingItem(item.id)"
+                    >
+                      <img v-if="item.imageUrl" :src="item.imageUrl" :alt="item.name" class="h-12 w-12 rounded-md object-cover">
+                      <span v-else class="grid h-12 w-12 shrink-0 place-items-center rounded-md bg-muted text-xs font-semibold text-muted">
+                        {{ item.label.slice(0, 2).toUpperCase() }}
+                      </span>
+                      <span class="min-w-0">
+                        <span class="block truncate text-sm font-semibold">{{ item.name }}</span>
+                        <span class="block text-xs text-muted">{{ item.label }}</span>
+                      </span>
+                    </button>
+
+                    <div v-if="!clothingItems?.length" class="p-3 text-sm text-muted">
+                      Add one text-only clothing piece to save this plan.
+                    </div>
+                  </div>
+
+                  <section v-if="showAddPiece" class="app-card p-4">
+                    <div class="mb-3">
+                      <h3 class="text-sm font-semibold">New piece</h3>
+                    </div>
+                    <div class="grid gap-3 sm:grid-cols-2">
+                      <div class="grid gap-2">
+                        <Label for="new-piece-name">Piece name <span class="text-muted">(optional)</span></Label>
+                        <Input id="new-piece-name" v-model="clothingForm.name" placeholder="Black trousers" />
+                      </div>
+                      <div class="grid gap-2">
+                        <Label for="new-piece-label">Type</Label>
+                        <NativeSelect id="new-piece-label" v-model="clothingForm.label">
+                          <NativeSelectOption value="">No label</NativeSelectOption>
+                          <NativeSelectOption v-for="label in clothingLabelOptions" :key="label" :value="label">{{ label }}</NativeSelectOption>
+                        </NativeSelect>
+                      </div>
+                      <div class="grid gap-2">
+                        <Label for="new-piece-color">Color</Label>
+                        <Input id="new-piece-color" v-model="clothingForm.color" placeholder="Black" />
+                      </div>
+                      <div class="grid gap-2">
+                        <Label for="new-piece-image">Image URL</Label>
+                        <Input id="new-piece-image" v-model="clothingForm.imageUrl" placeholder="https://..." />
+                      </div>
+                    </div>
+                    <div class="mt-3 grid gap-2">
+                      <Label for="new-piece-notes">Notes</Label>
+                      <Textarea id="new-piece-notes" v-model="clothingForm.notes" rows="2" placeholder="Fit, fabric, or care notes" />
+                    </div>
+                    <Alert v-if="clothingError" class="mt-3" variant="destructive">
+                      <AlertTitle>Could not add piece</AlertTitle>
+                      <AlertDescription>{{ clothingError }}</AlertDescription>
+                    </Alert>
+                    <div class="mt-3 flex justify-end">
+                      <Button type="button" :disabled="clothingSaveLoading" @click="createClothingItem">
+                        {{ clothingSaveLoading ? "Adding" : "Add and attach" }}
+                      </Button>
+                    </div>
+                  </section>
+
+                  <div class="flex flex-wrap justify-between gap-2">
+                    <Button type="button" variant="outline" @click="goToPlanStep(1)">
+                      Back
+                    </Button>
+                    <Button type="button" :disabled="!canContinueWardrobe" @click="goToPlanStep(3)">
+                      Review look
+                    </Button>
+                  </div>
+                </section>
+
+                <section v-if="planStep === 3" class="grid gap-5">
+                  <div>
+                    <h2 class="text-xl font-semibold">Finalize the plan</h2>
+                    <p class="mt-1 text-sm text-muted">Confirm the date, event, and pieces selected so far.</p>
+                  </div>
+
+                  <div class="grid gap-3 sm:grid-cols-2">
+                    <div class="app-card p-4">
+                      <p class="text-xs font-semibold uppercase tracking-wide text-muted">Event</p>
+                      <p class="mt-2 text-lg font-semibold">{{ form.eventName }}</p>
+                      <p class="mt-1 text-sm text-muted">{{ planDateLabel }}</p>
+                    </div>
+                    <div class="app-card p-4">
+                      <p class="text-xs font-semibold uppercase tracking-wide text-muted">Selection</p>
+                      <p class="mt-2 text-lg font-semibold">{{ selectedClothingItems.length }} piece{{ selectedClothingItems.length === 1 ? "" : "s" }}</p>
+                      <p class="mt-1 text-sm text-muted">Ready for review before saving.</p>
+                    </div>
+                  </div>
+
+                  <div class="grid gap-2">
+                    <Label for="prep-notes">Additional notes</Label>
+                    <Textarea id="prep-notes" v-model="form.prepNotes" rows="4" placeholder="Accessories, ironing, shoes, washing, or weather reminders" />
+                  </div>
+
+                  <div class="grid gap-2 sm:grid-cols-2">
+                    <div v-for="item in selectedClothingItems" :key="item.id" class="app-card flex gap-3 p-3">
+                      <img v-if="item.imageUrl" :src="item.imageUrl" :alt="item.name" class="h-16 w-16 rounded-md object-cover">
+                      <div v-else class="grid h-16 w-16 shrink-0 place-items-center rounded-md bg-muted text-xs font-semibold text-muted">
+                        {{ item.label.slice(0, 2).toUpperCase() }}
+                      </div>
+                      <div class="min-w-0">
+                        <p class="truncate text-sm font-semibold">{{ item.name }}</p>
+                        <p class="text-xs text-muted">{{ [item.label, item.color].filter(Boolean).join(" - ") }}</p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <Alert v-if="saveError" variant="destructive">
+                  <AlertTitle>Could not save plan</AlertTitle>
+                  <AlertDescription>{{ saveError }}</AlertDescription>
+                </Alert>
+
+                <div class="flex flex-wrap items-center justify-between gap-3 border-t border-default pt-4">
+                  <p class="text-sm text-muted">
+                    {{ form.clothingItemIds.length }} piece{{ form.clothingItemIds.length === 1 ? "" : "s" }} selected
+                  </p>
+                  <div class="flex flex-wrap gap-2">
+                    <Button v-if="planStep === 3" type="button" variant="outline" @click="goToPlanStep(2)">
+                      Back
+                    </Button>
+                    <Button v-if="planStep === 3" type="submit" :disabled="saveLoading || !canSave">
+                      {{ saveLoading ? "Saving" : isEditing ? "Update plan" : "Save plan" }}
+                    </Button>
+                  </div>
+                </div>
+              </form>
+            </section>
+
+            <aside class="grid content-start gap-4">
+              <section class="app-panel app-panel-pad">
+                <div class="mb-3 flex items-center justify-between gap-3">
+                  <h2 class="text-lg font-semibold">Same-day plans</h2>
+                  <Badge variant="secondary">{{ visibleSameDayPlans.length }}</Badge>
+                </div>
+                <div class="grid gap-2">
+                  <NuxtLink
+                    v-for="plan in visibleSameDayPlans"
+                    :key="plan.id"
+                    :to="{ path: '/plan', query: { id: plan.id, date: plan.date } }"
+                    class="app-clickable block p-3"
+                  >
+                    <p class="text-sm font-semibold">{{ plan.eventName }}</p>
+                    <p class="mt-1 text-xs text-muted">{{ plan.clothingItems.length }} piece{{ plan.clothingItems.length === 1 ? "" : "s" }}</p>
+                  </NuxtLink>
+                  <p v-if="!visibleSameDayPlans.length" class="text-sm text-muted">
+                    No other plans saved for {{ form.date }}.
+                  </p>
+                </div>
+              </section>
+
+              <section class="app-panel app-panel-pad">
+                <h2 class="text-lg font-semibold">Suggestions</h2>
+                <div class="mt-3 grid gap-2">
+                  <button
+                    v-for="suggestion in suggestionResults"
+                    :key="suggestion.entry.id"
+                    type="button"
+                    class="app-clickable p-3 text-left"
+                    @click="applySuggestion(suggestion.entry)"
+                  >
+                    <p class="text-sm font-semibold">{{ suggestion.entry.title }}</p>
+                    <p class="mt-1 text-xs text-muted">Last worn {{ suggestion.lastWornDate }}</p>
+                  </button>
+                  <p v-if="!suggestionResults.length" class="text-sm text-muted">
+                    Suggestions are optional and will appear here when available.
+                  </p>
+                </div>
+              </section>
+            </aside>
           </div>
         </div>
-
-        <section v-if="showAddPiece" class="app-card p-4">
-          <div class="mb-3">
-            <h3 class="text-sm font-semibold">New piece</h3>
-          </div>
-          <div class="grid gap-3 sm:grid-cols-2">
-            <div class="grid gap-2">
-              <Label for="new-piece-name">Piece name <span class="text-muted">(optional)</span></Label>
-              <Input id="new-piece-name" v-model="clothingForm.name" placeholder="Black trousers" />
-            </div>
-            <div class="grid gap-2">
-              <Label for="new-piece-label">Type</Label>
-              <NativeSelect id="new-piece-label" v-model="clothingForm.label">
-                <NativeSelectOption value="">No label</NativeSelectOption>
-                <NativeSelectOption v-for="label in clothingLabelOptions" :key="label" :value="label">{{ label }}</NativeSelectOption>
-              </NativeSelect>
-            </div>
-            <div class="grid gap-2">
-              <Label for="new-piece-color">Color</Label>
-              <Input id="new-piece-color" v-model="clothingForm.color" placeholder="Black" />
-            </div>
-            <div class="grid gap-2">
-              <Label for="new-piece-image">Image URL</Label>
-              <Input id="new-piece-image" v-model="clothingForm.imageUrl" placeholder="https://..." />
-            </div>
-          </div>
-          <div class="mt-3 grid gap-2">
-            <Label for="new-piece-notes">Notes</Label>
-            <Textarea id="new-piece-notes" v-model="clothingForm.notes" rows="2" placeholder="Fit, fabric, or care notes" />
-          </div>
-          <Alert v-if="clothingError" class="mt-3" variant="destructive">
-            <AlertTitle>Could not add piece</AlertTitle>
-            <AlertDescription>{{ clothingError }}</AlertDescription>
-          </Alert>
-          <div class="mt-3 flex justify-end">
-            <Button type="button" :disabled="clothingSaveLoading" @click="createClothingItem">
-              {{ clothingSaveLoading ? "Adding" : "Add and attach" }}
-            </Button>
-          </div>
-        </section>
-
-        <details class="app-card p-4">
-          <summary class="cursor-pointer text-sm font-semibold">Additional details</summary>
-          <div class="mt-3 grid gap-2">
-            <Label for="prep-notes">Prep notes</Label>
-            <Textarea id="prep-notes" v-model="form.prepNotes" rows="4" placeholder="Accessories, ironing, shoes, washing, or weather reminders" />
-          </div>
-        </details>
-
-        <Alert v-if="saveError" variant="destructive">
-          <AlertTitle>Could not save plan</AlertTitle>
-          <AlertDescription>{{ saveError }}</AlertDescription>
-        </Alert>
-
-        <div class="flex flex-wrap items-center justify-between gap-3 border-t border-default pt-4">
-          <p class="text-sm text-muted">
-            {{ form.clothingItemIds.length }} piece{{ form.clothingItemIds.length === 1 ? "" : "s" }} selected
-          </p>
-          <Button type="submit" :disabled="saveLoading || !canSave">
-            {{ saveLoading ? "Saving" : isEditing ? "Update plan" : "Save plan" }}
-          </Button>
-        </div>
-      </form>
-    </section>
-
-    <aside class="grid content-start gap-4">
-      <section class="app-panel app-panel-pad">
-        <div class="mb-3 flex items-center justify-between gap-3">
-          <h2 class="text-lg font-semibold">Same-day plans</h2>
-          <Badge variant="secondary">{{ visibleSameDayPlans.length }}</Badge>
-        </div>
-        <div class="grid gap-2">
-          <NuxtLink
-            v-for="plan in visibleSameDayPlans"
-            :key="plan.id"
-            :to="{ path: '/plan', query: { id: plan.id, date: plan.date } }"
-            class="app-clickable block p-3"
-          >
-            <p class="text-sm font-semibold">{{ plan.eventName }}</p>
-            <p class="mt-1 text-xs text-muted">{{ plan.clothingItems.length }} piece{{ plan.clothingItems.length === 1 ? "" : "s" }}</p>
-          </NuxtLink>
-          <p v-if="!visibleSameDayPlans.length" class="text-sm text-muted">
-            No other plans saved for {{ form.date }}.
-          </p>
-        </div>
-      </section>
-
-      <section class="app-panel app-panel-pad">
-        <h2 class="text-lg font-semibold">Suggestions</h2>
-        <div class="mt-3 grid gap-2">
-          <button
-            v-for="suggestion in suggestionResults"
-            :key="suggestion.entry.id"
-            type="button"
-            class="app-clickable p-3 text-left"
-            @click="applySuggestion(suggestion.entry)"
-          >
-            <p class="text-sm font-semibold">{{ suggestion.entry.title }}</p>
-            <p class="mt-1 text-xs text-muted">Last worn {{ suggestion.lastWornDate }}</p>
-          </button>
-          <p v-if="!suggestionResults.length" class="text-sm text-muted">
-            Suggestions are optional and will appear here when available.
-          </p>
-        </div>
-      </section>
-    </aside>
-  </div>
+      </div>
+    </DrawerContent>
+  </Drawer>
 </template>

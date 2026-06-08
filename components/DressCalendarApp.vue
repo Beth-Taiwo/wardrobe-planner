@@ -70,20 +70,11 @@ const selectedDate = ref(toDateInput(today))
 const importText = ref('')
 const importYear = ref(today.getFullYear())
 const importOpen = ref(false)
-const searchOpen = ref(false)
-type AppTab = 'insight' | 'wardrobe' | 'calendar'
+type AppTab = 'insight' | 'wardrobe'
 const route = useRoute()
 const activeTab = computed<AppTab>(() => getTabFromPath(route.path))
 const importError = ref('')
 const importing = ref(false)
-const searchDate = ref(toDateInput(today))
-const searchMonth = ref(toDateInput(today).slice(0, 7))
-const searchYear = ref(String(today.getFullYear()))
-const searchText = ref("")
-const searchCategory = ref("")
-const searchResults = ref<DressEntry[]>([])
-const searchLabel = ref('')
-const searching = ref(false)
 const suggestionResults = ref<DressSuggestion[]>([])
 const suggestionLoading = ref(false)
 const suggestionError = ref("")
@@ -97,7 +88,6 @@ const historyLoading = ref(false)
 const historyResult = ref<{ title: string, count: number, entries: DressEntry[] } | null>(null)
 const importPreview = ref<ImportPreviewResult | null>(null)
 const importPreviewLoading = ref(false)
-const normalizingCategories = ref(false)
 const clothingSaveLoading = ref(false)
 const clothingUploadLoading = ref(false)
 const pendingClothingImageFile = ref<File | null>(null)
@@ -197,14 +187,6 @@ const calendarDate = computed<DateValue | undefined>({
     jumpToDate(dateValueToString(value))
   }
 })
-const navigationItems = computed(() =>
-  navTabs.map((tab) => ({
-    label: tab.label,
-    icon: tab.icon,
-    to: tab.path,
-    active: activeTab.value === tab.key
-  }))
-)
 const wardrobeViewOptions = [
   { label:"Grid", value:"grid", icon:"i-heroicons-squares-2x2" },
   { label:"List", value:"list", icon:"i-heroicons-list-bullet" }
@@ -273,13 +255,27 @@ watch(dressDeleteConfirmOpen, (open) => {
   }
 })
 
+watch(
+  () => route.query,
+  (query) => {
+    if (typeof query.import === "string") {
+      importOpen.value = true
+    }
+
+    if (typeof query.addClothes === "string") {
+      clearClothingForm()
+      showAddClothesForm.value = true
+    }
+
+    if (typeof query.batchUpload === "string") {
+      batchClothesOpen.value = true
+    }
+  },
+  { immediate: true }
+)
+
 const categoryOptions = ["Casual","Work","Cooperate","Traditional","Event","Travel","Formal","Workout"]
 const clothingLabelOptions = ["Blouse","Shirt","Skirt","Dress","Gown","Trousers","Jeans","Kimono","Boubou","Jacket","Top","Shoes","Accessory","Other"]
-const navTabs = [
-  { key:"insight", label:"Insight", path:"/insight", icon:"i-heroicons-chart-bar" },
-  { key:"wardrobe", label:"Wardrobe", path:"/wardrobe", icon:"i-heroicons-swatch" },
-  { key:"calendar", label:"Calendar", path:"/calendar", icon:"i-heroicons-calendar-days" }
-] as const
 const suggestionWindowOptions = [30, 60, 90, 120]
 const categorySearchOptions = computed(() => ["All categories", ...categoryOptions])
 
@@ -288,15 +284,7 @@ function getTabFromPath(path: string): AppTab {
     return"insight"
   }
 
-  if (path.startsWith("/wardrobe")) {
-    return"wardrobe"
-  }
-
-  return"calendar"
-}
-
-function goToTab(tab: AppTab) {
-  return navigateTo(tab ==="calendar" ?"/calendar" :"/" + tab)
+  return"wardrobe"
 }
 
 function selectDate(date: string) {
@@ -355,61 +343,6 @@ async function handleFormDateChange() {
   jumpToDate(form.date)
   await nextTick()
   keepFormOnDateChange.value = false
-}
-
-async function runSearch(kind:"date" |"month" |"year" |"text" |"category") {
-  searching.value = true
-
-  try {
-    const query: Record<string, string> = {}
-
-    if (kind ==="date") {
-      query.date = searchDate.value
-    } else if (kind ==="month") {
-      query.month = searchMonth.value
-    } else if (kind ==="year") {
-      query.year = searchYear.value
-    } else if (kind ==="text") {
-      query.q = searchText.value
-    } else if (kind ==="category" && searchCategory.value && searchCategory.value !=="All categories") {
-      query.category = searchCategory.value
-    }
-
-    const results = await $fetch<DressEntry[]>("/api/dresses", { query })
-    searchResults.value = results
-
-    if (kind ==="date") {
-      jumpToDate(searchDate.value)
-      searchLabel.value = results.length ?"1 outfit found for" + searchDate.value :"No outfit found for" + searchDate.value
-    } else if (kind ==="month") {
-      const [year, month] = searchMonth.value.split("-").map(Number)
-      monthCursor.value = new Date(Date.UTC(year, month - 1, 1))
-      selectedDate.value = searchMonth.value +"-01"
-      searchLabel.value = results.length +" outfit" + (results.length === 1 ?"" :"s") +" found for" + searchMonth.value
-    } else if (kind ==="year") {
-      const year = Number(searchYear.value)
-      monthCursor.value = new Date(Date.UTC(year, 0, 1))
-      selectedDate.value = searchYear.value +"-01-01"
-      searchLabel.value = results.length +" outfit" + (results.length === 1 ?"" :"s") +" found in" + searchYear.value
-    } else if (kind ==="text") {
-      searchLabel.value = results.length +" outfit" + (results.length === 1 ?"" :"s") +" matching" + searchText.value
-    } else {
-      searchLabel.value = results.length +" outfit" + (results.length === 1 ?"" :"s") +" in" + searchCategory.value
-    }
-  } finally {
-    searching.value = false
-  }
-}
-
-function clearSearch() {
-  searchResults.value = []
-  searchLabel.value =""
-}
-
-function openSearchResult(entry: DressEntry) {
-  navigateTo("/calendar")
-  jumpToDate(entry.date)
-  fillFormFromEntry(entry)
 }
 
 function moveMonth(offset: number) {
@@ -548,18 +481,6 @@ async function loadOutfitHistory() {
     })
   } finally {
     historyLoading.value = false
-  }
-}
-
-async function normalizeCategories() {
-  normalizingCategories.value = true
-  try {
-    const result = await $fetch<{ updated: number }>("/api/categories/normalize", { method:"POST" })
-    toast.add({ title:"Updated" + result.updated +" categories", color:"green" })
-    await refresh()
-    await refreshStats()
-  } finally {
-    normalizingCategories.value = false
   }
 }
 
@@ -894,121 +815,27 @@ function toDateString(year: number, month: number, day: number) {
             Wardrobe planner
           </p>
           <h1 class="app-title">
-            Dress Calendar
+            Wardrobe Planner
           </h1>
           <p class="app-subtitle">
             Plan outfits, manage clothing pieces, and review what you wear over time.
           </p>
         </div>
 
-        <nav class="flex flex-wrap items-center gap-2" aria-label="Primary navigation">
-          <NavigationMenu>
-            <NavigationMenuList>
-              <NavigationMenuItem v-for="item in navigationItems" :key="item.to">
-                <NavigationMenuLink as-child>
-                  <NuxtLink :to="item.to" class="inline-flex h-9 items-center rounded-md px-3 text-sm font-medium">
-                    {{ item.label }}
-                  </NuxtLink>
-                </NavigationMenuLink>
-              </NavigationMenuItem>
-            </NavigationMenuList>
-          </NavigationMenu>
-
-          <Button
-            :aria-label="searchOpen ? 'Hide search filters' : 'Show search filters'"
-            :variant="searchOpen ? 'default' : 'outline'"
-            @click="searchOpen = !searchOpen"
+        <div v-if="activeTab === 'wardrobe'" class="flex flex-wrap items-center gap-2">
+          <RadioGroup
+            v-model="wardrobeViewMode"
+            class="flex h-9 items-center gap-3 rounded-md border border-default px-3"
+            orientation="horizontal"
+            aria-label="Wardrobe view mode"
           >
-            Search
-          </Button>
-          <Button as-child>
-            <NuxtLink to="/plan">Plan outfit</NuxtLink>
-          </Button>
-          <Button @click="importOpen = true">
-            Import
-          </Button>
-        </nav>
+            <label v-for="item in wardrobeViewOptions" :key="item.value" class="flex items-center gap-2 text-sm">
+              <RadioGroupItem :value="item.value" />
+              <span>{{ item.label }}</span>
+            </label>
+          </RadioGroup>
+        </div>
       </header>
-
-      <section v-if="searchOpen" class="app-panel app-panel-pad">
-        <div class="grid gap-3 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,0.95fr)_minmax(260px,0.75fr)] lg:items-end">
-          <div class="grid gap-2">
-            <Label for="search-date">Find exact date</Label>
-            <div class="flex gap-2">
-              <Input id="search-date" v-model="searchDate" type="date" class="min-w-0 flex-1" @keyup.enter="runSearch('date')" @blur="runSearch('date')" />
-              <Button :disabled="searching" @click="runSearch('date')">
-                Search date
-              </Button>
-            </div>
-          </div>
-
-          <div class="grid gap-2">
-            <Label for="search-month">Find month</Label>
-            <div class="flex gap-2">
-              <Input id="search-month" v-model="searchMonth" type="month" class="min-w-0 flex-1" @keyup.enter="runSearch('month')" @blur="runSearch('month')" />
-              <Button :disabled="searching" @click="runSearch('month')">
-                Search month
-              </Button>
-            </div>
-          </div>
-
-          <div class="grid gap-2">
-            <Label for="search-year">Find year</Label>
-            <div class="flex gap-2">
-              <Input id="search-year" v-model="searchYear" type="number" min="1900" max="2100" class="min-w-24 flex-1" @keyup.enter="runSearch('year')" @blur="runSearch('year')" />
-              <Button :disabled="searching" @click="runSearch('year')">
-                Search year
-              </Button>
-            </div>
-          </div>
-
-          <div class="grid gap-2">
-            <Label for="search-text">Find outfit</Label>
-            <div class="flex gap-2">
-              <Input id="search-text" v-model="searchText" placeholder="blue gown" class="min-w-0 flex-1" @keyup.enter="runSearch('text')" @blur="searchText.trim() && runSearch('text')" />
-              <Button :disabled="searching || !searchText.trim()" @click="runSearch('text')">
-                Search outfit
-              </Button>
-            </div>
-          </div>
-
-          <div class="grid gap-2">
-            <Label for="search-category">Find category</Label>
-            <div class="flex gap-2">
-              <NativeSelect id="search-category" v-model="searchCategory" class="min-w-0 flex-1" @blur="searchCategory && searchCategory !== 'All categories' && runSearch('category')">
-                <NativeSelectOption v-for="item in categorySearchOptions" :key="item" :value="item">{{ item }}</NativeSelectOption>
-              </NativeSelect>
-              <Button :disabled="searching || !searchCategory || searchCategory === 'All categories'" @click="runSearch('category')">
-                Search category
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        <div v-if="searchLabel" class="mt-4 border-t border-default pt-4">
-          <div class="mb-3 flex items-center justify-between gap-3">
-            <p class="text-sm font-medium">
-              {{ searchLabel }}
-            </p>
-            <Button v-if="searchResults.length" variant="outline" size="xs" @click="clearSearch">
-              Clear
-            </Button>
-          </div>
-
-          <div v-if="searchResults.length" class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            <button
-              v-for="entry in searchResults"
-              :key="entry.id"
-              type="button"
-              class="app-clickable p-3 text-left transition"
-              @click="openSearchResult(entry)"
-            >
-              <span class="block text-xs font-semibold">{{ entry.date }}</span>
-              <span class="mt-1 block text-sm font-medium">{{ entry.title }}</span>
-            </button>
-          </div>
-        </div>
-      </section>
 
       <section v-if="activeTab === 'insight'" class="app-panel overflow-hidden">
         <div class="border-b border-default px-4 py-4">
@@ -1016,14 +843,6 @@ function toDateString(year: number, month: number, day: number) {
             <div>
               <p class="text-xs font-semibold uppercase tracking-wide">Insights</p>
               <h2 class="mt-1 text-xl font-semibold">Wardrobe stats</h2>
-            </div>
-            <div class="flex flex-wrap gap-2">
-              <Button as-child size="sm">
-                <NuxtLink to="/plan">Plan outfit</NuxtLink>
-              </Button>
-              <Button variant="outline" size="sm" :disabled="normalizingCategories || !stats?.uncategorized" @click="normalizeCategories">
-                Classify uncategorized
-              </Button>
             </div>
           </div>
         </div>
@@ -1035,9 +854,6 @@ function toDateString(year: number, month: number, day: number) {
                 <p class="text-sm font-semibold">Upcoming plans</p>
                 <p class="text-xs text-muted">Future event outfits saved from planning.</p>
               </div>
-              <Button as-child variant="outline" size="sm">
-                <NuxtLink to="/plan">New plan</NuxtLink>
-              </Button>
             </div>
 
             <div v-if="upcomingPlans?.length" class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -1053,11 +869,8 @@ function toDateString(year: number, month: number, day: number) {
               </NuxtLink>
             </div>
 
-            <div v-else class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-dashed border-default p-3">
+            <div v-else class="rounded-lg border border-dashed border-default p-3">
               <p class="text-sm text-muted">No upcoming outfit plans yet.</p>
-              <Button as-child size="sm">
-                <NuxtLink to="/plan">Plan outfit</NuxtLink>
-              </Button>
             </div>
           </div>
 
@@ -1146,25 +959,6 @@ function toDateString(year: number, month: number, day: number) {
               <h2 class="mt-1 text-xl font-semibold">Clothing pieces</h2>
             </div>
             <div class="flex flex-wrap items-center gap-2">
-              <Button
-                type="button"
-                @click="clearClothingForm(); showAddClothesForm = true"
-              >
-                Add clothes
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                @click="batchClothesOpen = true"
-              >
-                Batch upload
-              </Button>
-              <RadioGroup v-model="wardrobeViewMode" class="flex items-center gap-3" orientation="horizontal" aria-label="Wardrobe view mode">
-                <label v-for="item in wardrobeViewOptions" :key="item.value" class="flex items-center gap-2 text-sm">
-                  <RadioGroupItem :value="item.value" />
-                  <span>{{ item.label }}</span>
-                </label>
-              </RadioGroup>
               <Badge variant="secondary">{{ clothingItems?.length || 0 }} item{{ (clothingItems?.length || 0) === 1 ? '' : 's' }}</Badge>
             </div>
           </div>
@@ -1290,223 +1084,6 @@ function toDateString(year: number, month: number, day: number) {
             </div>
           </DrawerContent>
         </Drawer>
-      </div>
-
-      <div v-if="activeTab === 'calendar'" class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
-        <section class="app-panel app-panel-pad">
-          <Calendar
-            v-model="calendarDate"
-            :month-controls="true"
-            :year-controls="true"
-            size="xl"
-            class="w-full"
-            @update:placeholder="updateCalendarPlaceholder"
-          >
-            <template #day="{ day }">
-              <div class="min-h-20 w-full min-w-0 p-1 text-left sm:min-h-24">
-                <span class="block text-sm font-semibold">{{ day.day }}</span>
-                <template v-if="entryForDateValue(day)">
-                  <span class="mt-2 block max-w-24 truncate text-xs font-semibold sm:max-w-32">
-                    {{ entryForDateValue(day)?.title }}
-                  </span>
-                  <Badge size="xs" variant="secondary" class="mt-1 max-w-24 truncate sm:max-w-32">
-                    {{ entryForDateValue(day)?.category || 'Planned' }}
-                  </Badge>
-                </template>
-              </div>
-            </template>
-          </Calendar>
-        </section>
-
-        <aside class="app-panel app-panel-pad">
-          <div class="mb-4">
-            <p class="text-sm font-medium">
-              {{ selectedDate }}
-            </p>
-            <h2 class="text-2xl font-semibold">
-              {{ selectedEntry ? 'Edit outfit' : 'Plan outfit' }}
-            </h2>
-          </div>
-
-          <form class="space-y-4" @submit.prevent="saveDress">
-            <div class="grid gap-2">
-              <Label for="dress-date">Date</Label>
-              <Input id="dress-date" v-model="form.date" type="date" @change="handleFormDateChange" />
-            </div>
-
-            <div class="grid gap-2">
-              <Label for="dress-title">Dress</Label>
-              <div class="flex gap-2">
-                <Input id="dress-title" v-model="form.title" placeholder="Blue midi dress with white sandals" class="min-w-0 flex-1" />
-                <NativeSelect v-model="suggestionWindowDays" class="w-28">
-                  <NativeSelectOption v-for="item in suggestionWindowOptions" :key="item" :value="item">{{ item }}</NativeSelectOption>
-                </NativeSelect>
-                <Button type="button" variant="outline" :disabled="suggestionLoading" @click="suggestDress">
-                  Suggest
-                </Button>
-              </div>
-            </div>
-
-            <Alert
-              v-if="suggestionError"
-              variant="secondary"
-            >
-              <AlertTitle>{{ suggestionError }}</AlertTitle>
-            </Alert>
-
-            <div v-if="suggestionResults.length" class="app-card space-y-2 p-3">
-              <div class="flex items-center justify-between gap-3">
-                <p class="text-sm font-semibold">
-                  Suggestions for {{ form.date }}
-                </p>
-                <Button type="button" variant="outline" size="xs" @click="clearSuggestions">
-                  Clear
-                </Button>
-              </div>
-              <button
-                v-for="suggestion in suggestionResults"
-                :key="suggestion.entry.id"
-                type="button"
-                class="app-clickable w-full p-3 text-left transition"
-                @click="applySuggestion(suggestion.entry)"
-              >
-                <span class="block text-sm font-semibold">{{ suggestion.entry.title }}</span>
-                <span class="mt-1 block text-xs">
-                  Last worn {{ suggestion.lastWornDate }} · {{ suggestion.reasons.join(" -") }}
-                </span>
-              </button>
-            </div>
-
-            <div class="flex gap-2">
-              <Button type="button" variant="outline" :disabled="historyLoading || !form.title.trim()" @click="loadOutfitHistory">
-                Outfit history
-              </Button>
-              <Button v-if="historyResult" type="button" variant="outline" @click="historyResult = null">
-                Clear history
-              </Button>
-            </div>
-
-            <div v-if="historyResult" class="app-card p-3">
-              <p class="text-sm font-semibold">
-                {{ historyResult.title }} worn {{ historyResult.count }} time{{ historyResult.count === 1 ?"" :"s" }}
-              </p>
-              <div class="mt-2 max-h-40 space-y-1 overflow-auto text-sm">
-                <button
-                  v-for="entry in historyResult.entries"
-                  :key="entry.id"
-                  type="button"
-                  class="block w-full rounded px-2 py-1 text-left hover:bg-muted"
-                  @click="openSearchResult(entry)"
-                >
-                  {{ entry.date }} - {{ entry.category ||"Uncategorized" }}
-                </button>
-              </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-              <div class="grid gap-2">
-                <Label for="dress-color">Color</Label>
-                <Input id="dress-color" v-model="form.color" placeholder="Blue" />
-              </div>
-
-              <div class="grid gap-2">
-                <Label for="dress-category">Category</Label>
-                <NativeSelect id="dress-category" v-model="form.category">
-                  <NativeSelectOption v-for="item in categoryOptions" :key="item" :value="item">{{ item }}</NativeSelectOption>
-                </NativeSelect>
-              </div>
-            </div>
-
-            <div class="grid gap-2">
-              <Label for="dress-image-url">Image URL</Label>
-              <Input id="dress-image-url" v-model="form.imageUrl" placeholder="https://..." />
-            </div>
-
-            <section class="app-card space-y-3 p-3">
-              <div class="flex items-start justify-between gap-3">
-                <div>
-                  <h3 class="text-sm font-semibold">Clothing pieces</h3>
-                  <p class="text-xs">Optional pieces that make up this outfit.</p>
-                </div>
-                <Badge variant="secondary">{{ selectedClothingItems.length }} selected</Badge>
-              </div>
-
-              <div v-if="selectedClothingItems.length" class="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                <div
-                  v-for="item in selectedClothingItems"
-                  :key="item.id"
-                  class="app-card overflow-hidden"
-                >
-                  <div class="app-media flex aspect-square items-center justify-center rounded-none">
-                    <img v-if="item.imageUrl" :src="item.imageUrl" alt="" class="h-full w-full object-cover">
-                    <span v-else class="px-2 text-center text-xs font-medium">No image</span>
-                  </div>
-                  <div class="p-2">
-                    <p class="truncate text-xs font-semibold">{{ item.name }}</p>
-                    <p class="truncate text-xs">{{ item.label }}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div v-if="clothingItems?.length" class="grid max-h-44 gap-2 overflow-auto">
-                <label v-for="item in clothingCheckboxItems" :key="item.value" class="flex items-center gap-2 rounded-md border p-2 text-sm">
-                  <Checkbox
-                    :model-value="form.clothingItemIds.includes(item.value)"
-                    @update:model-value="(checked) => {
-                      form.clothingItemIds = checked
-                        ? [...new Set([...form.clothingItemIds, item.value])]
-                        : form.clothingItemIds.filter((id) => id !== item.value)
-                    }"
-                  />
-                  <span>{{ item.label }}</span>
-                </label>
-              </div>
-
-              <Alert v-if="clothingError" variant="destructive">
-                <AlertTitle>{{ clothingError }}</AlertTitle>
-              </Alert>
-
-              <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <Input v-model="clothingForm.name" placeholder="Piece name" />
-                <NativeSelect v-model="clothingForm.label">
-                  <NativeSelectOption value="">No label</NativeSelectOption>
-                  <NativeSelectOption v-for="item in clothingLabelOptions" :key="item" :value="item">{{ item }}</NativeSelectOption>
-                </NativeSelect>
-                <Input v-model="clothingForm.color" placeholder="Piece color" />
-                <Input v-model="clothingForm.imageUrl" placeholder="Piece image URL" />
-              </div>
-
-              <div class="flex flex-wrap items-center gap-2">
-                <Input class="w-auto" type="file" accept="image/*" :disabled="clothingUploadLoading" @change="uploadClothingImage" />
-                <Button type="button" variant="outline" :disabled="clothingSaveLoading || clothingUploadLoading" @click="createClothingItem">
-                  Add piece
-                </Button>
-              </div>
-            </section>
-
-            <div class="grid gap-2">
-              <Label for="dress-notes">Notes</Label>
-              <Textarea id="dress-notes" v-model="form.notes" :rows="4" placeholder="Accessories, shoes, reminders" />
-            </div>
-
-            <div v-if="form.imageUrl" class="app-media">
-              <img :src="form.imageUrl" alt="" class="aspect-[4/3] w-full object-cover">
-            </div>
-
-            <Alert v-if="saveError" variant="destructive">
-              <AlertTitle>{{ saveError }}</AlertTitle>
-            </Alert>
-
-            <div class="flex gap-2">
-              <Button type="submit" :disabled="saveLoading">
-                Save
-              </Button>
-              <Button v-if="selectedEntry || editingEntryId" type="button" variant="outline" :disabled="deleteLoading" @click="requestDeleteDress">
-                Delete
-              </Button>
-            </div>
-          </form>
-        </aside>
       </div>
 
     <Dialog v-model:open="batchClothesOpen">

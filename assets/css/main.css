@@ -232,6 +232,14 @@
     border-bottom: 1px solid var(--wardrobe-border);
   }
 
+  .app-navbar {
+    display: flex;
+    min-width: min(100%, 34rem);
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: center;
+  }
+
   .app-brand {
     display: flex;
     min-width: 0;
@@ -260,6 +268,19 @@
     gap: 0.5rem;
     color: var(--wardrobe-muted);
     font-size: 0.875rem;
+  }
+
+  @media (max-width: 767px) {
+    .app-navbar {
+      order: 3;
+      width: 100%;
+      justify-content: flex-start;
+    }
+
+    .app-userbar {
+      width: 100%;
+      justify-content: flex-start;
+    }
   }
 
   .app-main {
