@@ -68,7 +68,7 @@ Each authenticated user gets a private calendar, wardrobe, stats, suggestions, i
 
 ## UI Changes
 - Add `/login` and `/register` pages with email/password forms and a Google sign-in action.
-- Add route middleware so `/calendar`, `/wardrobe`, and `/insight` require authentication.
+- Add route middleware so `/home`, `/wardrobe`, and `/plan` require authentication.
 - Add signed-in account controls to the main layout:
   - display name or email
   - logout

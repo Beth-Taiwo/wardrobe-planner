@@ -20,7 +20,7 @@ async function submitRegister() {
       }
     })
     await refreshNuxtData("current-user")
-    await navigateTo(typeof route.query.redirect === "string" ? route.query.redirect : "/wardrobe")
+    await navigateTo(typeof route.query.redirect === "string" ? route.query.redirect : "/home")
   } catch (err: any) {
     error.value = err?.data?.statusMessage || err?.statusMessage || "Could not create this account."
   } finally {

@@ -2,11 +2,11 @@
 
 ## Purpose
 
-This userflow describes how an authenticated Wardrobe Planner user plans outfits for future events or occasions. The experience starts from insight, moves into a dedicated planning page, and keeps the date as one part of the plan rather than making the calendar the main workflow. A user can plan more than one outfit for the same day when they have multiple events or wardrobe needs.
+This userflow describes how an authenticated Wardrobe Planner user plans outfits for future events or occasions. The experience starts from Home, moves into a dedicated planning page, and keeps the date as one part of the plan rather than making the calendar the main workflow. A user can plan more than one outfit for the same day when they have multiple events or wardrobe needs.
 
 ## Primary Journey
 
-The user signs in and lands on insight. This page gives them a quick read on their wardrobe activity, repeat patterns, and upcoming planning needs. From there, the user clicks a clear `Plan outfit` action.
+The user signs in and lands on Home. This page gives them a quick read on their wardrobe activity, repeat patterns, and upcoming planning needs. From there, the user clicks a clear `Plan outfit` action.
 
 The app takes the user to a dedicated plan page. The page focuses on the plan itself: the event or occasion, the date, the outfit pieces, and any reminders the user needs before wearing it. If the selected date already has other plans, the page shows those same-day plans nearby without blocking the new plan.
 
@@ -20,14 +20,14 @@ To keep the form simple, optional planning details stay collapsed by default. Th
 
 The user can also ask for a suggestion. Suggestions are optional: they help the user reuse something from their history without repeating too soon, but they never block manual planning.
 
-When the user saves, the outfit plan is attached to the event and date. The plan becomes visible from insight as an upcoming plan and can be reopened later for editing.
+When the user saves, the outfit plan is attached to the event and date. The plan becomes visible from Home as an upcoming plan and can be reopened later for editing.
 
 If the user needs another outfit for the same day, they can start another plan from the saved state or from the same-day plan list. The date stays prefilled, and the user enters a different event or occasion name, then selects the pieces for that second outfit. Each same-day outfit remains separately editable.
 
 ## Important Moments
 
-- If the user has no upcoming plans, insight makes the `Plan outfit` action prominent.
-- If the user starts from insight, they should not need to visit a calendar just to choose a date.
+- If the user has no upcoming plans, Home makes the `Plan outfit` action prominent.
+- If the user starts from Home, they should not need to visit a calendar just to choose a date.
 - If the user changes the date while drafting, the draft keeps its event and outfit details.
 - If the selected date already has one or more plans, the app shows them as same-day plans and still allows the user to add another outfit.
 - If the user adds another outfit for the same date, the date stays prefilled and the event name distinguishes the new plan.
@@ -35,7 +35,7 @@ If the user needs another outfit for the same day, they can start another plan f
 - If a selected piece has no image, the app shows a placeholder and keeps the piece selectable.
 - If the user does not need prep notes, that field stays hidden inside a collapsed optional section.
 - If suggestions are unavailable, the user sees that state and continues manually.
-- If saving succeeds, insight and plan history reflect the upcoming plan immediately.
+- If saving succeeds, Home and plan history reflect the upcoming plan immediately.
 - If the user reopens a saved plan, the page loads it in edit mode.
 
 ## User Expectations
@@ -53,13 +53,13 @@ If the user needs another outfit for the same day, they can start another plan f
 
 ## Success Criteria
 
-- Insight is the authenticated landing page.
-- Insight includes a clear `Plan outfit` action.
+- Home is the authenticated landing page.
+- Home includes a clear `Plan outfit` action.
 - The `Plan outfit` action takes the user to a dedicated plan page.
 - A user can save a future outfit plan with an event name, date, and at least one outfit piece.
 - A user can save more than one outfit plan for the same date when each plan represents a distinct event or occasion.
 - Prep notes are collapsed by default in an optional details section.
-- Saved future plans appear in insight or another upcoming-plan surface.
+- Saved future plans appear in Home or another upcoming-plan surface.
 - Reopening a saved future plan opens edit mode.
 - Same-day plans appear as separate editable items, grouped by date where useful.
 - Inline clothing creation can attach a new text-only or image-backed piece to the current plan.

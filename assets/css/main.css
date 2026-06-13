@@ -212,24 +212,34 @@
   .app-container {
     width: min(100%, 1440px);
     margin-inline: auto;
-    padding: 1rem;
+    padding: 1rem 1rem 7.5rem;
   }
 
   @media (min-width: 768px) {
     .app-container {
-      padding: 1.25rem;
+      padding: 1.25rem 1.25rem 7.75rem;
     }
   }
 
   .app-topbar {
+    position: fixed;
+    right: max(1rem, calc((100vw - 1440px) / 2 + 1rem));
+    bottom: max(1.75rem, calc(env(safe-area-inset-bottom) + 1rem));
+    left: max(1rem, calc((100vw - 1440px) / 2 + 1rem));
+    z-index: 60;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
-    margin-bottom: 1rem;
-    padding-bottom: 0.875rem;
-    border-bottom: 1px solid var(--wardrobe-border);
+    padding: 0.625rem;
+    border: 1px solid rgb(255 255 255 / 0.48);
+    border-radius: 1rem;
+    background: rgb(255 255 255 / 0.58);
+    box-shadow:
+      0 18px 45px rgb(35 28 18 / 0.12),
+      inset 0 1px 0 rgb(255 255 255 / 0.72);
+    backdrop-filter: blur(18px) saturate(1.3);
   }
 
   .app-navbar {
@@ -237,7 +247,7 @@
     min-width: min(100%, 34rem);
     flex: 1 1 auto;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-end;
   }
 
   .app-brand {
@@ -245,8 +255,19 @@
     min-width: 0;
     align-items: center;
     gap: 0.625rem;
+    border-radius: 0.75rem;
+    padding: 0.25rem 0.5rem 0.25rem 0.25rem;
     color: var(--wardrobe-text);
     font-weight: 700;
+    transition:
+      background-color 160ms ease,
+      color 160ms ease;
+  }
+
+  .app-brand:hover,
+  .app-brand:focus-visible {
+    background: rgb(255 255 255 / 0.48);
+    outline: none;
   }
 
   .app-brand-mark {
@@ -260,24 +281,8 @@
     color: var(--wardrobe-accent);
   }
 
-  .app-userbar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 0.5rem;
-    color: var(--wardrobe-muted);
-    font-size: 0.875rem;
-  }
-
   @media (max-width: 767px) {
     .app-navbar {
-      order: 3;
-      width: 100%;
-      justify-content: flex-start;
-    }
-
-    .app-userbar {
       width: 100%;
       justify-content: flex-start;
     }

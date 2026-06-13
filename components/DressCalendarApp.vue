@@ -70,7 +70,7 @@ const selectedDate = ref(toDateInput(today))
 const importText = ref('')
 const importYear = ref(today.getFullYear())
 const importOpen = ref(false)
-type AppTab = 'insight' | 'wardrobe'
+type AppTab = 'home' | 'wardrobe'
 const route = useRoute()
 const activeTab = computed<AppTab>(() => getTabFromPath(route.path))
 const importError = ref('')
@@ -280,8 +280,8 @@ const suggestionWindowOptions = [30, 60, 90, 120]
 const categorySearchOptions = computed(() => ["All categories", ...categoryOptions])
 
 function getTabFromPath(path: string): AppTab {
-  if (path.startsWith("/insight")) {
-    return"insight"
+  if (path.startsWith("/home")) {
+    return"home"
   }
 
   return"wardrobe"
@@ -837,11 +837,11 @@ function toDateString(year: number, month: number, day: number) {
         </div>
       </header>
 
-      <section v-if="activeTab === 'insight'" class="app-panel overflow-hidden">
+      <section v-if="activeTab === 'home'" class="app-panel overflow-hidden">
         <div class="border-b border-default px-4 py-4">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p class="text-xs font-semibold uppercase tracking-wide">Insights</p>
+              <p class="text-xs font-semibold uppercase tracking-wide">Home</p>
               <h2 class="mt-1 text-xl font-semibold">Wardrobe stats</h2>
             </div>
           </div>

@@ -6,7 +6,7 @@ const { data, refresh } = await useFetch<{ user: { email: string, displayName: s
 
 const route = useRoute()
 const navItems = [
-  { label: "Insight", to: "/insight" },
+  { label: "Home", to: "/home" },
   { label: "Wardrobe", to: "/wardrobe" },
   { label: "Plan outfit", to: "/plan" }
 ]
@@ -35,7 +35,7 @@ function isActive(path: string) {
   <main class="app-shell">
     <div class="app-container">
       <div class="app-topbar">
-        <NuxtLink to="/wardrobe" class="app-brand">
+        <NuxtLink to="/home" class="app-brand">
           <span class="app-brand-mark">
             WP
           </span>
@@ -94,21 +94,48 @@ function isActive(path: string) {
                   </button>
                 </NavigationMenuLink>
               </NavigationMenuItem>
+
+              <NavigationMenuItem>
+                <Popover>
+                  <PopoverTrigger as-child>
+                    <button
+                      type="button"
+                      class="inline-flex h-9 min-w-0 items-center gap-2 rounded-md px-3 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+                    >
+                      <Avatar
+                        :alt="data.user.displayName || data.user.email"
+                        size="sm"
+                        class="h-6 w-6"
+                      />
+                      <span class="max-w-32 truncate">{{ data.user.displayName || data.user.email }}</span>
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" side="top" class="z-[60] w-56 p-2">
+                    <div class="border-b border-default px-2 pb-2">
+                      <p class="truncate text-sm font-medium">{{ data.user.displayName || "Account" }}</p>
+                      <p class="truncate text-xs text-muted">{{ data.user.email }}</p>
+                    </div>
+                    <div class="grid gap-1 pt-2">
+                      <NuxtLink
+                        to="/account"
+                        class="rounded-md px-2 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+                      >
+                        Account settings
+                      </NuxtLink>
+                      <button
+                        type="button"
+                        class="rounded-md px-2 py-2 text-left text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+                        @click="logout"
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </NavigationMenuItem>
             </NavigationMenuList>
           </NavigationMenu>
         </nav>
-
-        <div v-if="data?.user" class="app-userbar">
-          <Avatar
-            :alt="data.user.displayName || data.user.email"
-            size="sm"
-          />
-          <span class="max-w-48 truncate">{{ data.user.displayName || data.user.email }}</span>
-          <Button as-child size="sm" variant="outline">
-            <NuxtLink to="/account">Account</NuxtLink>
-          </Button>
-          <Button size="sm" variant="outline" @click="logout">Logout</Button>
-        </div>
       </div>
       <div class="app-main">
         <slot />

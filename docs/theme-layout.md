@@ -1,6 +1,6 @@
 # Theme and Layout Specification
 
-This document formalizes the visual direction, layout rules, and reusable interface patterns for Wardrobe Planner. It is intended to guide future UI work across the calendar, wardrobe, insights, authentication, and account screens.
+This document formalizes the visual direction, layout rules, and reusable interface patterns for Wardrobe Planner. It is intended to guide future UI work across home, wardrobe, authentication, and account screens.
 
 ## Product Feel
 
@@ -83,7 +83,7 @@ Each primary app view should share the same header pattern:
 
 Primary navigation order:
 
-1. Insight
+1. Home
 2. Wardrobe
 3. Calendar
 
@@ -96,7 +96,7 @@ Use predictable grid tracks for the major workflows:
 - Calendar view: `lg:grid-cols-[minmax(0,1fr)_380px]`.
 - Wardrobe with editor open: `lg:grid-cols-[minmax(0,1fr)_380px]`.
 - Wardrobe without editor: single column.
-- Insights: metric grid `sm:grid-cols-2 lg:grid-cols-4`; detail grid `lg:grid-cols-3`.
+- Home: metric grid `sm:grid-cols-2 lg:grid-cols-4`; detail grid `lg:grid-cols-3`.
 - Auth pages: centered card with max width around `28rem`.
 - Account settings: two-column grid on large screens.
 
@@ -106,7 +106,7 @@ Side panels should remain fixed-width on desktop so forms do not expand into unc
 
 ### Panels
 
-Use panels for major functional areas such as search, calendar, wardrobe, insights, and side editors.
+Use panels for major functional areas such as home, wardrobe, and side editors.
 
 Panel rules:
 
@@ -122,7 +122,7 @@ Panels should not be nested inside other panels.
 
 Use cards for repeated items or contained summaries:
 
-- Insight metric cards.
+- Home metric cards.
 - Clothing grid items.
 - Selected clothing thumbnails.
 - Import preview rows.
@@ -230,7 +230,7 @@ Important states:
 - Batch upload drafts.
 - Delete confirmation.
 
-### Insight
+### Home
 
 Purpose: summarize wardrobe usage and cleanup opportunities.
 
@@ -308,7 +308,7 @@ Recommended class names:
 Before considering the theme implemented:
 
 - All primary pages use the same shell spacing and max width.
-- Calendar, wardrobe, and insights use named panel/card/list classes instead of one-off surface styling.
+- Home and wardrobe use named panel/card/list classes instead of one-off surface styling.
 - Auth and account pages align with the same typography and spacing system.
 - Buttons use icons for common actions where appropriate.
 - Calendar and wardrobe grids maintain stable dimensions across content states.

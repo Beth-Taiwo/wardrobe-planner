@@ -15,7 +15,7 @@ async function submitLogin() {
       body: { email: email.value, password: password.value }
     })
     await refreshNuxtData("current-user")
-    await navigateTo(typeof route.query.redirect === "string" ? route.query.redirect : "/wardrobe")
+    await navigateTo(typeof route.query.redirect === "string" ? route.query.redirect : "/home")
   } catch (err: any) {
     error.value = err?.data?.statusMessage || err?.statusMessage || "Could not sign in."
   } finally {

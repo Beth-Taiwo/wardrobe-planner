@@ -343,7 +343,7 @@ function resetNewPlanForm() {
 
             <div class="flex flex-wrap gap-2">
               <Button as-child variant="outline">
-                <NuxtLink to="/insight">Insight</NuxtLink>
+                <NuxtLink to="/home">Home</NuxtLink>
               </Button>
               <Button v-if="savedPlan" type="button" @click="startAnotherPlan(savedPlan.date)">
                 Another outfit same day

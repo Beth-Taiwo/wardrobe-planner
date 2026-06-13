@@ -93,5 +93,5 @@ export default defineEventHandler(async (event) => {
   })
 
   await createSession(event, user.id)
-  return sendRedirect(event, "/wardrobe")
+  return sendRedirect(event, "/home")
 })
