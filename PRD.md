@@ -77,11 +77,11 @@ Each feature below maps to real pages (`pages/`) and API resource groups (`serve
 
 - Create, edit, and delete clothing pieces with **name, label/type, color, notes, and image**.
 - Grid view (image-first) and list view (fast scanning) of the wardrobe.
-- Image upload per item, plus **batch upload** for adding many pieces at once.
+- Image upload per item.
 - Text-only pieces are first-class: an item works without an image (a placeholder is shown).
 
 ### 3.3 Daily Wear Log (Dress Calendar)
-*Component: `DressCalendarApp.vue` · API: `dresses`, `outfits/history`*
+*Component: `DressCalendarApp.vue` · API: `dresses`*
 
 - Record what was worn on a given date (`DressEntry`): title, color, category, notes, image, and
   the clothing pieces involved.
@@ -114,14 +114,8 @@ Each feature below maps to real pages (`pages/`) and API resource groups (`serve
 
 - Home dashboard summarizing wardrobe usage: metric cards, most-worn items, category breakdown,
   and "not worn this year" cleanup opportunities.
-- A clear **"Plan outfit"** call to action.
+- A clear **"Plan outfit"** call to action and a persistent **"Log today"** quick action.
 - A "classify uncategorized" entry point for cleanup.
-
-### 3.7 Import & Category Cleanup
-*API: `import`, `import/preview`, `categories/normalize`*
-
-- Bulk-import wardrobe/wear data with a **preview** step before committing.
-- Normalize/clean up category labels across existing items.
 
 ---
 
@@ -186,28 +180,21 @@ Signalled by `tracker.md` and the codebase:
    `requireUser(event)` + ownership-by-`userId` on every request — matching the app's existing
    access pattern and giving instant revocation. Signed time-limited URLs are deferred to a later
    move to object storage (S3/R2/GCS), if/when image traffic warrants it.
-2. **Category expansion beyond clothing (as a top-level item type).** Add household textiles such as
-   **beddings** by introducing a single top-level `type` field on `ClothingItem` —
-   `"clothing"` (default) | `"bedding"` — *above* the existing `label`. `label` remains the sub-type
-   within a type (garment labels for clothing; sheet/duvet/pillowcase for bedding). Existing rows
-   default to `"clothing"`. **Gate behavior by type:** outfit planning, suggestions, the daily-wear
-   log, and outfit-centric stats operate on `clothing` only; the wardrobe page gains a simple
-   Clothing/Bedding filter. This keeps the "what do I wear today" loop free of non-garments. Avoid a
-   generic nested-category system — one field, sensible default, behavior gating. (Note: this is a
-   deliberate step from "outfit planner" toward "personal textile inventory.")
-3. **First-class daily wear logging ("Log today").** Logging is the input the entire insight half of
-   the product depends on, so it must be near-frictionless. Add a persistent primary
-   **"Log today's outfit"** quick action (top bar + prominent on Home) with the date pre-filled to
-   today — a one-tap capture, *not* a new top-level Calendar page. Keep the calendar/history view
+2. **First-class daily wear logging ("Log today").** *(Implemented.)* A persistent primary
+   **"Log today"** quick action (top bar + a prominent CTA on Home) with the date pre-filled to
+   today — a one-tap capture, *not* a top-level Calendar page. The calendar/history view is kept
    reachable as a secondary surface for backfilling missed days and reviewing past wear. This makes
    the core loop explicit: Wardrobe (build) → Log today (capture) → Plan (look ahead) →
    Home (review).
-4. **Account management polish.** Continue rounding out the account surface (profile, password,
+3. **Account management polish.** Continue rounding out the account surface (profile, password,
    linked providers, deletion) — largely built, tracked for refinement.
+
+Scope note: an earlier idea to expand beyond clothing into household textiles (beddings) via a
+top-level item `type` has been **dropped** — the product stays focused on garments/outfits.
 
 ---
 
 ## 8. Open Questions
 
-*None currently open — earlier questions on private-image delivery, bedding taxonomy, and daily-wear
-navigation are resolved in §7.*
+*None currently open — earlier questions on private-image delivery and daily-wear navigation are
+resolved in §7; the bedding/textile expansion has been dropped from scope.*

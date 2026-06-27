@@ -42,6 +42,7 @@ export interface DressEntryFilters {
   year?: string | null
   text?: string
   category?: string
+  uncategorized?: boolean
   excludeDate?: string | null
   order?: "asc" | "desc"
 }
@@ -53,7 +54,6 @@ interface DressEntryInput {
   category?: string | null
   notes?: string | null
   imageUrl?: string | null
-  sourceUrl?: string | null
   clothingItemIds?: string[]
 }
 
@@ -104,7 +104,6 @@ export function toDressEntry(row: DressEntryWithItems) {
     category: row.category,
     notes: row.notes,
     imageUrl: row.imageUrl,
-    sourceUrl: row.sourceUrl,
     createdAt: formatDateTime(row.createdAt),
     updatedAt: formatDateTime(row.updatedAt),
     clothingItems: row.clothingItems
@@ -152,8 +151,7 @@ export async function updateDressEntry(userId: string, id: string, entry: DressE
         color: entry.color ?? null,
         category: entry.category ?? null,
         notes: entry.notes ?? null,
-        imageUrl: entry.imageUrl ?? null,
-        sourceUrl: entry.sourceUrl ?? undefined
+        imageUrl: entry.imageUrl ?? null
       }
     })
 
@@ -180,18 +178,6 @@ export async function findDressByDate(userId: string, date: string, client: Pris
 export async function deleteDressEntry(userId: string, id: string) {
   const result = await prisma.dressEntry.deleteMany({ where: { id, userId } })
   return result.count
-}
-
-export async function importDressEntries(userId: string, entries: DressEntryInput[]) {
-  return prisma.$transaction(async (tx) => {
-    const saved = []
-
-    for (const entry of entries) {
-      saved.push(await upsertDressEntryWithClient(tx, userId, entry))
-    }
-
-    return saved
-  })
 }
 
 export async function listClothingItems(userId: string) {
@@ -335,34 +321,6 @@ export async function deleteClothingItem(userId: string, id: string) {
   return result.count
 }
 
-export async function normalizeMissingDressCategories(userId: string, inferCategory: (title: string) => string | null | undefined) {
-  const rows = await prisma.dressEntry.findMany({
-    where: {
-      userId,
-      OR: [{ category: null }, { category: "" }]
-    },
-    orderBy: { date: "asc" }
-  })
-  const changes: Array<{ date: string, title: string, category: string }> = []
-
-  await prisma.$transaction(async (tx) => {
-    for (const row of rows) {
-      const category = inferCategory(row.title)
-      if (!category) {
-        continue
-      }
-
-      await tx.dressEntry.update({
-        where: { id: row.id },
-        data: { category }
-      })
-      changes.push({ date: row.date, title: row.title, category })
-    }
-  })
-
-  return { updated: changes.length, changes }
-}
-
 export async function getDressStats(userId: string) {
   const rows = await prisma.dressEntry.findMany({ where: { userId }, orderBy: { date: "asc" } })
   const byTitle = new Map<string, { title: string, count: number, lastWorn: string }>()
@@ -428,6 +386,10 @@ function buildDressEntryWhere(userId: string, filters: DressEntryFilters): Prism
     AND.push({ category: filters.category })
   }
 
+  if (filters.uncategorized) {
+    AND.push({ OR: [{ category: null }, { category: "" }] })
+  }
+
   return AND.length ? { AND } : {}
 }
 
@@ -442,16 +404,14 @@ async function upsertDressEntryWithClient(client: PrismaClientOrTransaction, use
       color: entry.color ?? null,
       category: entry.category ?? null,
       notes: entry.notes ?? null,
-      imageUrl: entry.imageUrl ?? null,
-      sourceUrl: entry.sourceUrl ?? null
+      imageUrl: entry.imageUrl ?? null
     },
     update: {
       title: entry.title,
       color: entry.color ?? null,
       category: entry.category ?? null,
       notes: entry.notes ?? null,
-      imageUrl: entry.imageUrl ?? null,
-      sourceUrl: entry.sourceUrl ?? undefined
+      imageUrl: entry.imageUrl ?? null
     }
   })
 

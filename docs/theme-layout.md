@@ -217,7 +217,7 @@ Purpose: manage clothing items and optionally attach them to outfits.
 
 Layout:
 
-- Main panel: grid/list toggle, item count, batch upload.
+- Main panel: grid/list toggle, item count.
 - Optional right panel: add/edit clothes form.
 - Grid view should prioritize image thumbnails.
 - List view should prioritize fast scanning of name, label, color, notes.
@@ -227,7 +227,6 @@ Important states:
 - Empty wardrobe.
 - Uploading image.
 - Editing existing piece.
-- Batch upload drafts.
 - Delete confirmation.
 
 ### Home

@@ -61,9 +61,6 @@ Each authenticated user gets a private calendar, wardrobe, stats, suggestions, i
   - `/api/clothes`
   - `/api/stats`
   - `/api/suggestions`
-  - `/api/outfits/history`
-  - `/api/import`
-  - `/api/categories/normalize`
 - Return `401` for unauthenticated requests and `404` for authenticated requests targeting a resource not owned by the current user.
 
 ## UI Changes

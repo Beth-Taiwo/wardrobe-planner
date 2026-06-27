@@ -9,5 +9,6 @@ export default defineEventHandler(async (event) => {
   const year = typeof query.year === "string" ? query.year : null
   const text = typeof query.q === "string" ? query.q.trim() : ""
   const category = typeof query.category === "string" ? query.category.trim() : ""
-  return listDressEntries(user.id, { date, month, year, text, category })
+  const uncategorized = query.uncategorized === "true"
+  return listDressEntries(user.id, { date, month, year, text, category, uncategorized })
 })

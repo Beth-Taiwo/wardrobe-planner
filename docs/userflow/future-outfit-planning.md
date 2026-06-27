@@ -1,5 +1,7 @@
 # Future Outfit Planning Userflow
 
+> Part of the app journey — see [`app-journey.md`](./app-journey.md) for how this fits the whole.
+
 ## Purpose
 
 This userflow describes how an authenticated Wardrobe Planner user plans outfits for future events or occasions. The experience starts from Home, moves into a dedicated planning page, and keeps the date as one part of the plan rather than making the calendar the main workflow. A user can plan more than one outfit for the same day when they have multiple events or wardrobe needs.
