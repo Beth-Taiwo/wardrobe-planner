@@ -1,4 +1,4 @@
-import { getGoogleRedirectUri, setOAuthState } from "../../../utils/auth"
+import { encodeOAuthState, getGoogleRedirectUri, safeInternalPath, setOAuthState } from "../../../utils/auth"
 
 export default defineEventHandler((event) => {
   const clientId = process.env.GOOGLE_CLIENT_ID
@@ -8,7 +8,9 @@ export default defineEventHandler((event) => {
     throw createError({ statusCode: 500, statusMessage: "Google OAuth is not configured." })
   }
 
-  const state = setOAuthState(event)
+  const csrf = setOAuthState(event)
+  const redirect = safeInternalPath(getQuery(event).redirect)
+  const state = encodeOAuthState(csrf, redirect)
   const url = new URL("https://accounts.google.com/o/oauth2/v2/auth")
   url.searchParams.set("client_id", clientId)
   url.searchParams.set("redirect_uri", redirectUri)

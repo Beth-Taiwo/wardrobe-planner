@@ -17,7 +17,6 @@ export interface DressEntry {
   category: string | null
   notes: string | null
   imageUrl: string | null
-  sourceUrl: string | null
   createdAt: string
   updatedAt: string
   clothingItems: ClothingItem[]

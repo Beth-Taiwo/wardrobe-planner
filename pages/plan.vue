@@ -65,6 +65,7 @@ const clothingError = ref("")
 const suggestionLoading = ref(false)
 const suggestionResults = ref<DressSuggestion[]>([])
 const showAddPiece = ref(true)
+const showPrepNotes = ref(false)
 const planDateOpen = ref(false)
 const planDrawerOpen = ref(true)
 const planStep = ref(1)
@@ -138,6 +139,7 @@ watch(existingPlan, (plan) => {
   form.eventName = plan.eventName
   form.prepNotes = plan.prepNotes || ""
   form.clothingItemIds = plan.clothingItems.map((item) => item.id)
+  showPrepNotes.value = Boolean(plan.prepNotes)
   showAddPiece.value = false
   clearClothingForm()
 }, { immediate: true })
@@ -306,6 +308,7 @@ function resetNewPlanForm() {
   form.clothingItemIds = []
   saveError.value = ""
   suggestionResults.value = []
+  showPrepNotes.value = false
   showAddPiece.value = true
   planStep.value = 1
   clearClothingForm()
@@ -542,8 +545,18 @@ function resetNewPlanForm() {
                   </div>
 
                   <div class="grid gap-2">
-                    <Label for="prep-notes">Additional notes</Label>
-                    <Textarea id="prep-notes" v-model="form.prepNotes" rows="4" placeholder="Accessories, ironing, shoes, washing, or weather reminders" />
+                    <button
+                      type="button"
+                      class="flex w-full items-center justify-between rounded-md border border-default px-3 py-2 text-left text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+                      @click="showPrepNotes = !showPrepNotes"
+                    >
+                      <span>Additional details <span class="font-normal text-muted">(optional)</span></span>
+                      <span class="text-muted">{{ showPrepNotes ? "−" : "+" }}</span>
+                    </button>
+                    <div v-if="showPrepNotes" class="grid gap-2">
+                      <Label for="prep-notes">Prep notes</Label>
+                      <Textarea id="prep-notes" v-model="form.prepNotes" rows="4" placeholder="Accessories, ironing, shoes, washing, or weather reminders" />
+                    </div>
                   </div>
 
                   <div class="grid gap-2 sm:grid-cols-2">

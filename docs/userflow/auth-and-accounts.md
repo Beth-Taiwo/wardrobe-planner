@@ -1,5 +1,7 @@
 # Authentication & Accounts Userflow
 
+> Part of the app journey — see [`app-journey.md`](./app-journey.md) for how this fits the whole.
+
 ## Purpose
 
 This userflow describes how a person creates an account, signs in, and manages that account in

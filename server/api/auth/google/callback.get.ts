@@ -1,4 +1,4 @@
-import { createSession, getGoogleRedirectUri, normalizeEmail, verifyOAuthState } from "../../../utils/auth"
+import { createSession, decodeOAuthState, getGoogleRedirectUri, normalizeEmail, safeInternalPath, verifyOAuthState } from "../../../utils/auth"
 import { prisma } from "../../../utils/db"
 
 interface GoogleTokenResponse {
@@ -16,9 +16,10 @@ interface GoogleUserInfo {
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const code = typeof query.code === "string" ? query.code : ""
-  const state = typeof query.state === "string" ? query.state : ""
+  const rawState = typeof query.state === "string" ? query.state : ""
+  const { csrf, redirect } = decodeOAuthState(rawState)
 
-  if (!code || !verifyOAuthState(event, state)) {
+  if (!code || !verifyOAuthState(event, csrf)) {
     throw createError({ statusCode: 400, statusMessage: "Invalid Google sign-in response." })
   }
 
@@ -93,5 +94,5 @@ export default defineEventHandler(async (event) => {
   })
 
   await createSession(event, user.id)
-  return sendRedirect(event, "/home")
+  return sendRedirect(event, safeInternalPath(redirect))
 })

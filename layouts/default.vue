@@ -63,10 +63,10 @@ function isActive(path: string) {
                 <NavigationMenuLink as-child>
                   <button
                     type="button"
-                    class="inline-flex h-9 items-center rounded-md px-3 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-                    @click="openNavbarAction('/wardrobe', 'import')"
+                    class="inline-flex h-9 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                    @click="openNavbarAction('/home', 'logToday')"
                   >
-                    Import
+                    Log today
                   </button>
                 </NavigationMenuLink>
               </NavigationMenuItem>
@@ -79,18 +79,6 @@ function isActive(path: string) {
                     @click="openNavbarAction('/wardrobe', 'addClothes')"
                   >
                     Add clothes
-                  </button>
-                </NavigationMenuLink>
-              </NavigationMenuItem>
-
-              <NavigationMenuItem>
-                <NavigationMenuLink as-child>
-                  <button
-                    type="button"
-                    class="inline-flex h-9 items-center rounded-md px-3 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-                    @click="openNavbarAction('/wardrobe', 'batchUpload')"
-                  >
-                    Batch upload
                   </button>
                 </NavigationMenuLink>
               </NavigationMenuItem>

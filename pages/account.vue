@@ -63,7 +63,7 @@ async function deleteAccount() {
   try {
     await $fetch("/api/account", { method: "DELETE" })
     await refreshNuxtData("current-user")
-    await navigateTo("/register")
+    await navigateTo("/login")
   } finally {
     deleteLoading.value = false
   }

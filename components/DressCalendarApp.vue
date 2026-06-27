@@ -21,14 +21,6 @@ interface ClothingForm {
   notes: string
 }
 
-interface BatchClothingDraft {
-  name: string
-  label: string
-  color: string
-  imageUrl: string
-  notes: string
-}
-
 interface DressSuggestion {
   entry: DressEntry
   score: number
@@ -47,15 +39,6 @@ interface OutfitStats {
   notWornThisYear: Array<{ title: string, count: number, lastWorn: string }>
 }
 
-interface ImportPreviewResult {
-  count: number
-  skippedCount: number
-  invalidCount: number
-  entries: DressForm[]
-  skipped: Array<{ line: string, reason: string }>
-  invalid: Array<{ line: string, reason: string }>
-}
-
 interface DressDeletePreview {
   id: string
   date: string
@@ -67,14 +50,9 @@ interface DressDeletePreview {
 const today = new Date()
 const monthCursor = ref(new Date(Date.UTC(today.getFullYear(), today.getMonth(), 1)))
 const selectedDate = ref(toDateInput(today))
-const importText = ref('')
-const importYear = ref(today.getFullYear())
-const importOpen = ref(false)
 type AppTab = 'home' | 'wardrobe'
 const route = useRoute()
 const activeTab = computed<AppTab>(() => getTabFromPath(route.path))
-const importError = ref('')
-const importing = ref(false)
 const suggestionResults = ref<DressSuggestion[]>([])
 const suggestionLoading = ref(false)
 const suggestionError = ref("")
@@ -84,10 +62,6 @@ const saveError = ref("")
 const deleteLoading = ref(false)
 const dressDeleteConfirmOpen = ref(false)
 const dressPendingDelete = ref<DressDeletePreview | null>(null)
-const historyLoading = ref(false)
-const historyResult = ref<{ title: string, count: number, entries: DressEntry[] } | null>(null)
-const importPreview = ref<ImportPreviewResult | null>(null)
-const importPreviewLoading = ref(false)
 const clothingSaveLoading = ref(false)
 const clothingUploadLoading = ref(false)
 const pendingClothingImageFile = ref<File | null>(null)
@@ -95,13 +69,11 @@ const clothingImagePreviewUrl = ref("")
 const clothingDeleteLoading = ref(false)
 const clothingDeleteConfirmOpen = ref(false)
 const clothingItemPendingDelete = ref<ClothingItem | null>(null)
-const batchClothesOpen = ref(false)
-const batchClothesLoading = ref(false)
-const batchClothesUploadLoading = ref(false)
-const batchClothesError = ref("")
-const batchImageDrafts = ref<BatchClothingDraft[]>([])
 const wardrobeViewMode = ref<'grid' | 'list'>('grid')
 const showAddClothesForm = ref(false)
+const logOpen = ref(false)
+const clothingSearch = ref("")
+const clothingLabelFilter = ref("")
 const clothingError = ref("")
 const editingEntryId = ref<string | null>(null)
 const editingClothingItemId = ref<string | null>(null)
@@ -168,14 +140,6 @@ const selectedClothingItems = computed(() => {
   return (clothingItems.value || []).filter((item) => selectedIds.has(item.id))
 })
 const clothingImageDisplayUrl = computed(() => clothingImagePreviewUrl.value || clothingForm.imageUrl)
-const validBatchClothes = computed(() =>
-  batchImageDrafts.value.filter((item) =>
-    (item.name.trim() || item.imageUrl.trim()) && normalizeClothingLabel(item.label) !== null
-  ).map((item) => ({
-    ...item,
-    label: normalizeClothingLabel(item.label) ||""
-  }))
-)
 const calendarDays = computed(() => buildCalendarDays(monthCursor.value))
 const calendarDate = computed<DateValue | undefined>({
   get: () => parseDate(selectedDate.value),
@@ -198,6 +162,22 @@ const clothingCheckboxItems = computed(() =>
     description: [item.label, item.color].filter(Boolean).join(" - ")
   }))
 )
+const filteredClothingItems = computed(() => {
+  const search = clothingSearch.value.trim().toLowerCase()
+  const label = clothingLabelFilter.value
+  return (clothingItems.value || []).filter((item) => {
+    if (label && item.label !== label) {
+      return false
+    }
+
+    if (!search) {
+      return true
+    }
+
+    return [item.name, item.label, item.color, item.notes]
+      .some((field) => (field || "").toLowerCase().includes(search))
+  })
+})
 const outfitStepperItems = [
   { title:"Outfit", description:"Name and date", icon:"i-heroicons-sparkles" },
   { title:"Pieces", description:"Clothing and image", icon:"i-heroicons-swatch" },
@@ -258,22 +238,19 @@ watch(dressDeleteConfirmOpen, (open) => {
 watch(
   () => route.query,
   (query) => {
-    if (typeof query.import === "string") {
-      importOpen.value = true
-    }
-
     if (typeof query.addClothes === "string") {
       clearClothingForm()
       showAddClothesForm.value = true
     }
 
-    if (typeof query.batchUpload === "string") {
-      batchClothesOpen.value = true
+    if (typeof query.logToday === "string") {
+      openLog(toDateInput(today))
     }
   },
   { immediate: true }
 )
 
+const weekdayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 const categoryOptions = ["Casual","Work","Cooperate","Traditional","Event","Travel","Formal","Workout"]
 const clothingLabelOptions = ["Blouse","Shirt","Skirt","Dress","Gown","Trousers","Jeans","Kimono","Boubou","Jacket","Top","Shoes","Accessory","Other"]
 const suggestionWindowOptions = [30, 60, 90, 120]
@@ -289,6 +266,29 @@ function getTabFromPath(path: string): AppTab {
 
 function selectDate(date: string) {
   selectedDate.value = date
+}
+
+function openLog(date?: string) {
+  if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    jumpToDate(date)
+  }
+
+  logOpen.value = true
+}
+
+// Opens the oldest wear-log entry that has no category, in the log drawer, so it can be classified.
+async function classifyOldestUncategorized() {
+  try {
+    const entries = await $fetch<DressEntry[]>("/api/dresses", { query: { uncategorized: "true" } })
+    if (!entries.length) {
+      toast.add({ title: "Nothing left to classify", color: "green" })
+      return
+    }
+
+    openLog(entries[0].date)
+  } catch {
+    toast.add({ title: "Could not load uncategorized outfits", color: "gray" })
+  }
 }
 
 function dateValueToString(value: DateValue) {
@@ -469,21 +469,6 @@ function clearSuggestions() {
   suggestionError.value =""
 }
 
-async function loadOutfitHistory() {
-  if (!form.title.trim()) {
-    return
-  }
-
-  historyLoading.value = true
-  try {
-    historyResult.value = await $fetch<{ title: string, count: number, entries: DressEntry[] }>("/api/outfits/history", {
-      query: { title: form.title }
-    })
-  } finally {
-    historyLoading.value = false
-  }
-}
-
 async function createClothingItem(attachToCurrentOutfit = true) {
   clothingError.value =""
 
@@ -519,15 +504,6 @@ async function createClothingItem(attachToCurrentOutfit = true) {
   }
 }
 
-function normalizeClothingLabel(label: string) {
-  const normalized = label.trim().toLowerCase()
-  if (!normalized) {
-    return null
-  }
-
-  return clothingLabelOptions.find((option) => option.toLowerCase() === normalized) || null
-}
-
 function clothingNameFromFileName(fileName: string) {
   return fileName
     .replace(/\.[^.]+$/,"")
@@ -535,75 +511,6 @@ function clothingNameFromFileName(fileName: string) {
     .replace(/\s+/g,"")
     .trim()
     .replace(/\b\w/g, (letter) => letter.toUpperCase())
-}
-
-async function uploadBatchClothingImages(event: Event) {
-  const input = event.target as HTMLInputElement
-  const files = Array.from(input.files || [])
-  if (!files.length) {
-    return
-  }
-
-  batchClothesError.value =""
-  batchClothesUploadLoading.value = true
-
-  try {
-    const uploaded: BatchClothingDraft[] = []
-
-    for (const file of files) {
-      const body = new FormData()
-      body.append("file", file)
-      const result = await $fetch<{ imageUrl: string }>("/api/clothes/upload", {
-        method:"POST",
-        body
-      })
-      uploaded.push({
-        name: clothingNameFromFileName(file.name) ||"New clothing piece",
-        label:"",
-        color:"",
-        imageUrl: result.imageUrl,
-        notes:""
-      })
-    }
-
-    batchImageDrafts.value = [...batchImageDrafts.value, ...uploaded]
-    toast.add({ title:"Uploaded" + uploaded.length +" images", color:"green" })
-  } catch (error: any) {
-    batchClothesError.value = error?.statusMessage || error?.data?.statusMessage ||"Could not upload these images."
-  } finally {
-    batchClothesUploadLoading.value = false
-    input.value =""
-  }
-}
-
-function removeBatchImageDraft(index: number) {
-  batchImageDrafts.value.splice(index, 1)
-}
-
-async function importBatchClothingItems() {
-  const items = validBatchClothes.value
-  if (!items.length) {
-    return
-  }
-
-  batchClothesError.value =""
-  batchClothesLoading.value = true
-
-  try {
-    const result = await $fetch<{ count: number, skipped: Array<{ index: number, reason: string }> }>("/api/clothes/batch", {
-      method:"POST",
-      body: { items }
-    })
-    toast.add({ title:"Imported" + result.count +" clothing pieces", color:"green" })
-    batchClothesOpen.value = false
-    batchImageDrafts.value = []
-    await refreshClothingItems()
-    await refresh()
-  } catch (error: any) {
-    batchClothesError.value = error?.statusMessage || error?.data?.statusMessage ||"Could not import these clothing pieces."
-  } finally {
-    batchClothesLoading.value = false
-  }
 }
 
 function clearPendingClothingImage() {
@@ -724,57 +631,6 @@ onBeforeUnmount(() => {
   clearPendingClothingImage()
 })
 
-
-async function previewImportEntries() {
-  importError.value =""
-  importPreviewLoading.value = true
-
-  try {
-    importPreview.value = await $fetch<ImportPreviewResult>("/api/import/preview", {
-      method:"POST",
-      body: {
-        text: importText.value,
-        year: importYear.value
-      }
-    })
-  } catch (error: any) {
-    importError.value = error?.statusMessage || error?.data?.statusMessage ||"Could not preview these entries."
-  } finally {
-    importPreviewLoading.value = false
-  }
-}
-
-function clearImportPreview() {
-  importPreview.value = null
-  importError.value =""
-}
-
-async function importEntries() {
-  importError.value = ''
-  importing.value = true
-
-  try {
-    const result = await $fetch<{ count: number }>('/api/import', {
-      method: 'POST',
-      body: {
-        text: importText.value,
-        year: importYear.value
-      }
-    })
-
-    toast.add({ title:"Imported" + result.count +" entries", color:"green" })
-    importOpen.value = false
-    importText.value =""
-    importPreview.value = null
-    await refresh()
-    await refreshStats()
-  } catch (error: any) {
-    importError.value = error?.statusMessage || error?.data?.statusMessage || 'Could not import these entries.'
-  } finally {
-    importing.value = false
-  }
-}
-
 function buildCalendarDays(cursor: Date) {
   const year = cursor.getUTCFullYear()
   const month = cursor.getUTCMonth()
@@ -848,6 +704,16 @@ function toDateString(year: number, month: number, day: number) {
         </div>
 
         <div class="p-4">
+          <div class="mb-4 flex flex-wrap items-center gap-2">
+            <Button type="button" @click="openLog(toDateInput(today))">Log today's outfit</Button>
+            <NuxtLink
+              to="/plan"
+              class="inline-flex h-9 items-center rounded-md border border-default px-4 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+            >
+              Plan outfit
+            </NuxtLink>
+          </div>
+
           <div class="mb-4 app-card p-4">
             <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -871,6 +737,42 @@ function toDateString(year: number, month: number, day: number) {
 
             <div v-else class="rounded-lg border border-dashed border-default p-3">
               <p class="text-sm text-muted">No upcoming outfit plans yet.</p>
+            </div>
+          </div>
+
+          <div class="mb-4 app-card p-4">
+            <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p class="text-sm font-semibold">Wear history</p>
+                <p class="text-xs text-muted">What you wore. Click any day to log or edit it.</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <Button type="button" variant="outline" size="sm" aria-label="Previous month" @click="moveMonth(-1)">Prev</Button>
+                <span class="min-w-32 text-center text-sm font-medium">{{ monthLabel }}</span>
+                <Button type="button" variant="outline" size="sm" aria-label="Next month" @click="moveMonth(1)">Next</Button>
+                <Button type="button" size="sm" @click="openLog(toDateInput(today))">Log today</Button>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-7 gap-1 text-center text-xs font-medium text-muted">
+              <span v-for="weekday in weekdayLabels" :key="weekday">{{ weekday }}</span>
+            </div>
+            <div class="mt-1 grid grid-cols-7 gap-1">
+              <template v-for="(cell, index) in calendarDays" :key="index">
+                <div v-if="!cell.isCurrentMonth" />
+                <button
+                  v-else
+                  type="button"
+                  class="min-h-16 rounded-md border border-default p-1 text-left transition hover:bg-muted"
+                  :class="entriesByDate.get(cell.date) ? 'bg-muted/60' : ''"
+                  @click="openLog(cell.date)"
+                >
+                  <span class="block text-xs font-semibold">{{ cell.day }}</span>
+                  <span v-if="entriesByDate.get(cell.date)" class="mt-1 block truncate text-[11px] font-medium">
+                    {{ entriesByDate.get(cell.date)?.title }}
+                  </span>
+                </button>
+              </template>
             </div>
           </div>
 
@@ -904,7 +806,15 @@ function toDateString(year: number, month: number, day: number) {
                 <p class="text-xs font-semibold uppercase tracking-wide">Uncategorized</p>
               </div>
               <p class="mt-3 text-3xl font-semibold">{{ stats?.uncategorized || 0 }}</p>
-              <p class="mt-1 text-sm">Ready for cleanup</p>
+              <button
+                v-if="stats?.uncategorized"
+                type="button"
+                class="mt-1 text-sm font-medium text-foreground underline-offset-4 hover:underline"
+                @click="classifyOldestUncategorized"
+              >
+                Classify the oldest →
+              </button>
+              <p v-else class="mt-1 text-sm">All caught up</p>
             </div>
           </div>
 
@@ -959,13 +869,33 @@ function toDateString(year: number, month: number, day: number) {
               <h2 class="mt-1 text-xl font-semibold">Clothing pieces</h2>
             </div>
             <div class="flex flex-wrap items-center gap-2">
-              <Badge variant="secondary">{{ clothingItems?.length || 0 }} item{{ (clothingItems?.length || 0) === 1 ? '' : 's' }}</Badge>
+              <Badge variant="secondary">
+                {{ filteredClothingItems.length }}<template v-if="filteredClothingItems.length !== (clothingItems?.length || 0)"> / {{ clothingItems?.length || 0 }}</template>
+                item{{ filteredClothingItems.length === 1 ? '' : 's' }}
+              </Badge>
             </div>
           </div>
 
-          <div v-if="clothingItems?.length && wardrobeViewMode === 'grid'" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-6">
+          <div v-if="clothingItems?.length" class="mb-4 flex flex-wrap items-center gap-2">
+            <Input v-model="clothingSearch" placeholder="Search name, color, notes…" class="h-9 w-full max-w-xs" />
+            <NativeSelect v-model="clothingLabelFilter" class="h-9 w-auto">
+              <NativeSelectOption value="">All labels</NativeSelectOption>
+              <NativeSelectOption v-for="item in clothingLabelOptions" :key="item" :value="item">{{ item }}</NativeSelectOption>
+            </NativeSelect>
+            <Button
+              v-if="clothingSearch || clothingLabelFilter"
+              type="button"
+              variant="outline"
+              size="sm"
+              @click="clothingSearch = ''; clothingLabelFilter = ''"
+            >
+              Clear
+            </Button>
+          </div>
+
+          <div v-if="filteredClothingItems.length && wardrobeViewMode === 'grid'" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-6">
             <article
-              v-for="item in clothingItems"
+              v-for="item in filteredClothingItems"
               :key="item.id"
               class="app-card overflow-hidden transition"
             >
@@ -986,9 +916,9 @@ function toDateString(year: number, month: number, day: number) {
             </article>
           </div>
 
-          <div v-else-if="clothingItems?.length" class="app-card overflow-hidden">
+          <div v-else-if="filteredClothingItems.length" class="app-card overflow-hidden">
             <article
-              v-for="item in clothingItems"
+              v-for="item in filteredClothingItems"
               :key="item.id"
             >
               <button type="button" class="flex w-full cursor-pointer items-center gap-3 border-b border-default p-3 text-left last:border-b-0 hover:bg-muted" @click="editClothingItem(item)">
@@ -1004,6 +934,11 @@ function toDateString(year: number, month: number, day: number) {
                 </div>
               </button>
             </article>
+          </div>
+
+          <div v-else-if="clothingItems?.length" class="app-card p-6 text-center">
+            <p class="text-sm font-medium">No pieces match your filter</p>
+            <p class="mt-1 text-sm">Try a different search or label.</p>
           </div>
 
           <div v-else class="app-card p-6 text-center">
@@ -1086,120 +1021,136 @@ function toDateString(year: number, month: number, day: number) {
         </Drawer>
       </div>
 
-    <Dialog v-model:open="batchClothesOpen">
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Batch upload clothes</DialogTitle>
-        </DialogHeader>
-        <div class="space-y-4">
-          <Alert v-if="batchClothesError" variant="destructive">
-            <AlertTitle>{{ batchClothesError }}</AlertTitle>
-          </Alert>
+    <Drawer v-model:open="logOpen" direction="bottom">
+      <DrawerContent class="max-h-[90vh] overflow-hidden">
+        <div class="mx-auto flex max-h-[90vh] w-full max-w-2xl flex-col px-4 pb-6 sm:px-6">
+          <DrawerHeader class="shrink-0 px-0 text-left">
+            <DrawerTitle>{{ selectedEntry || editingEntryId ? "Edit outfit" : "Log outfit" }}</DrawerTitle>
+            <DrawerDescription>Record what you wore. One outfit per day — saving again updates it.</DrawerDescription>
+          </DrawerHeader>
 
-          <Input type="file" accept="image/*" multiple :disabled="batchClothesUploadLoading" @change="uploadBatchClothingImages" />
+          <form class="min-h-0 flex-1 space-y-4 overflow-auto pr-1" @submit.prevent="saveDress">
+            <div class="grid gap-2">
+              <Label for="dress-date">Date</Label>
+              <Input id="dress-date" v-model="form.date" type="date" @change="handleFormDateChange" />
+            </div>
 
-          <div v-if="batchImageDrafts.length" class="space-y-3">
-            <div
-              v-for="(draft, index) in batchImageDrafts"
-              :key="draft.imageUrl"
-              class="app-card grid gap-3 p-3 sm:grid-cols-[96px_minmax(0,1fr)]"
-            >
-              <div class="app-media">
-                <img :src="draft.imageUrl" alt="" class="aspect-square h-full w-full object-cover">
-              </div>
-              <div class="space-y-3">
-                <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                  <Input v-model="draft.name" placeholder="Name" />
-                  <NativeSelect v-model="draft.label">
-                    <NativeSelectOption v-for="item in clothingLabelOptions" :key="item" :value="item">{{ item }}</NativeSelectOption>
-                  </NativeSelect>
-                  <Input v-model="draft.color" placeholder="Color" />
-                </div>
-                <div class="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-                  <Input v-model="draft.notes" placeholder="Notes" />
-                  <div class="flex items-end">
-                    <Button type="button" variant="outline" @click="removeBatchImageDraft(index)">
-                      Remove
-                    </Button>
-                  </div>
-                </div>
+            <div class="grid gap-2">
+              <Label for="dress-title">Outfit</Label>
+              <div class="flex gap-2">
+                <Input id="dress-title" v-model="form.title" placeholder="Blue midi dress with white sandals" class="min-w-0 flex-1" />
+                <Button type="button" variant="outline" :disabled="suggestionLoading" @click="suggestDress">
+                  {{ suggestionLoading ? "..." : "Suggest" }}
+                </Button>
               </div>
             </div>
-          </div>
 
-          <div v-if="!batchImageDrafts.length" class="app-card p-3 text-sm">
-            Select images to create editable clothing-piece drafts.
-          </div>
+            <Alert v-if="suggestionError" variant="secondary">
+              <AlertTitle>{{ suggestionError }}</AlertTitle>
+            </Alert>
+
+            <div v-if="suggestionResults.length" class="app-card space-y-2 p-3">
+              <div class="flex items-center justify-between gap-3">
+                <p class="text-sm font-semibold">Suggestions for {{ form.date }}</p>
+                <Button type="button" variant="outline" size="xs" @click="clearSuggestions">Clear</Button>
+              </div>
+              <button
+                v-for="suggestion in suggestionResults"
+                :key="suggestion.entry.id"
+                type="button"
+                class="app-clickable w-full p-3 text-left transition"
+                @click="applySuggestion(suggestion.entry)"
+              >
+                <span class="block text-sm font-semibold">{{ suggestion.entry.title }}</span>
+                <span class="mt-1 block text-xs">Last worn {{ suggestion.lastWornDate }} · {{ suggestion.reasons.join(" · ") }}</span>
+              </button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div class="grid gap-2">
+                <Label for="dress-color">Color</Label>
+                <Input id="dress-color" v-model="form.color" placeholder="Blue" />
+              </div>
+              <div class="grid gap-2">
+                <Label for="dress-category">Category</Label>
+                <NativeSelect id="dress-category" v-model="form.category">
+                  <NativeSelectOption v-for="item in categoryOptions" :key="item" :value="item">{{ item }}</NativeSelectOption>
+                </NativeSelect>
+              </div>
+            </div>
+
+            <div class="grid gap-2">
+              <Label for="dress-image-url">Image URL <span class="text-muted">(optional)</span></Label>
+              <Input id="dress-image-url" v-model="form.imageUrl" placeholder="https://..." />
+            </div>
+
+            <section class="app-card space-y-3 p-3">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <h3 class="text-sm font-semibold">Clothing pieces</h3>
+                  <p class="text-xs text-muted">The wardrobe pieces that make up this outfit.</p>
+                </div>
+                <Badge variant="secondary">{{ selectedClothingItems.length }} selected</Badge>
+              </div>
+
+              <div v-if="clothingItems?.length" class="grid max-h-44 gap-2 overflow-auto">
+                <label v-for="item in clothingCheckboxItems" :key="item.value" class="flex items-center gap-2 rounded-md border border-default p-2 text-sm">
+                  <Checkbox
+                    :model-value="form.clothingItemIds.includes(item.value)"
+                    @update:model-value="(checked) => {
+                      form.clothingItemIds = checked
+                        ? [...new Set([...form.clothingItemIds, item.value])]
+                        : form.clothingItemIds.filter((id) => id !== item.value)
+                    }"
+                  />
+                  <span>{{ item.label }}</span>
+                </label>
+              </div>
+
+              <div v-else class="rounded-md border border-dashed border-default p-3 text-xs text-muted">
+                No wardrobe pieces yet. Add one below and it joins your wardrobe.
+              </div>
+
+              <Alert v-if="clothingError" variant="destructive">
+                <AlertTitle>{{ clothingError }}</AlertTitle>
+              </Alert>
+
+              <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <Input v-model="clothingForm.name" placeholder="Piece name" />
+                <NativeSelect v-model="clothingForm.label">
+                  <NativeSelectOption value="">No label</NativeSelectOption>
+                  <NativeSelectOption v-for="item in clothingLabelOptions" :key="item" :value="item">{{ item }}</NativeSelectOption>
+                </NativeSelect>
+              </div>
+              <div class="flex flex-wrap items-center gap-2">
+                <Input class="w-auto" type="file" accept="image/*" :disabled="clothingUploadLoading" @change="uploadClothingImage" />
+                <Button type="button" variant="outline" :disabled="clothingSaveLoading || clothingUploadLoading" @click="createClothingItem(true)">
+                  {{ clothingSaveLoading || clothingUploadLoading ? "Adding..." : "Add piece" }}
+                </Button>
+              </div>
+            </section>
+
+            <div class="grid gap-2">
+              <Label for="dress-notes">Notes</Label>
+              <Textarea id="dress-notes" v-model="form.notes" :rows="3" placeholder="Accessories, shoes, reminders" />
+            </div>
+
+            <Alert v-if="saveError" variant="destructive">
+              <AlertTitle>{{ saveError }}</AlertTitle>
+            </Alert>
+          </form>
+
+          <DrawerFooter class="shrink-0 px-0 pb-0 sm:flex-row sm:justify-end">
+            <Button v-if="selectedEntry || editingEntryId" type="button" variant="outline" :disabled="deleteLoading" @click="requestDeleteDress">
+              Delete
+            </Button>
+            <Button type="button" :disabled="saveLoading" @click="saveDress">
+              {{ saveLoading ? "Saving..." : (selectedEntry || editingEntryId ? "Save changes" : "Save outfit") }}
+            </Button>
+          </DrawerFooter>
         </div>
-        <DialogFooter>
-          <Button variant="outline" :disabled="batchClothesLoading" @click="batchClothesOpen = false">
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            :disabled="batchClothesLoading || !validBatchClothes.length"
-            @click="importBatchClothingItems"
-          >
-            Save {{ validBatchClothes.length }} pieces
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-
-    <Dialog v-model:open="importOpen">
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Import from Keep</DialogTitle>
-          <DialogDescription>Paste all three Google Keep notes here. Slash dates are read as DD/MM/YYYY, for example 08/12/2020 means 8 December 2020.</DialogDescription>
-        </DialogHeader>
-        <div class="space-y-4">
-          <Alert v-if="importError" variant="destructive">
-            <AlertTitle>{{ importError }}</AlertTitle>
-          </Alert>
-
-          <div class="grid gap-2">
-            <Label for="import-year">Default year</Label>
-            <Input id="import-year" v-model="importYear" type="number" />
-          </div>
-
-          <Textarea v-model="importText" :rows="10" placeholder="WFH — 13/05/2025&#10;Blue dress — 08/12/2020&#10;Black wrap dress — 12/05/2026" />
-
-          <div v-if="importPreview" class="p-3 text-sm">
-            <div class="mb-3 flex items-center justify-between gap-3">
-              <p class="font-semibold">Import preview</p>
-              <Button variant="outline" size="xs" @click="clearImportPreview">Clear</Button>
-            </div>
-            <div class="grid gap-2 sm:grid-cols-3">
-              <Badge>{{ importPreview.count }} importable</Badge>
-              <Badge>{{ importPreview.skippedCount }} skipped</Badge>
-              <Badge>{{ importPreview.invalidCount }} invalid</Badge>
-            </div>
-            <div v-if="importPreview.entries.length" class="mt-3 max-h-32 overflow-auto">
-              <p v-for="entry in importPreview.entries.slice(0, 8)" :key="entry.date + entry.title">
-                {{ entry.date }} - {{ entry.title }}
-              </p>
-            </div>
-            <div v-if="importPreview.invalid.length" class="mt-3 max-h-24 overflow-auto">
-              <p v-for="item in importPreview.invalid.slice(0, 5)" :key="item.line">{{ item.line }} - {{ item.reason }}</p>
-            </div>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" :disabled="importPreviewLoading || !importText.trim()" @click="previewImportEntries">
-            Preview
-          </Button>
-          <Button variant="outline" :disabled="importing" @click="importOpen = false">
-            Cancel
-          </Button>
-          <Button
-            :disabled="importing || !importText.trim()"
-            @click="importEntries"
-          >
-            Import entries
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </DrawerContent>
+    </Drawer>
 
     <Dialog v-model:open="dressDeleteConfirmOpen">
       <DialogContent>
@@ -1251,7 +1202,7 @@ function toDateString(year: number, month: number, day: number) {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Delete clothing piece</DialogTitle>
-          <DialogDescription>This will remove the piece from your wardrobe and from any saved outfits that use it.</DialogDescription>
+          <DialogDescription>This removes the piece everywhere it is used.</DialogDescription>
         </DialogHeader>
         <div class="space-y-4">
           <div class="p-3">
@@ -1261,7 +1212,8 @@ function toDateString(year: number, month: number, day: number) {
                   Delete {{ clothingItemPendingDelete?.name ||"this clothing piece" }}?
                 </p>
                 <p class="mt-1 text-sm">
-                  This action cannot be undone.
+                  It will also be removed from any <span class="font-medium">past wear-log entries</span> and
+                  <span class="font-medium">future outfit plans</span> that include it. This action cannot be undone.
                 </p>
               </div>
             </div>

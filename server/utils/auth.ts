@@ -161,6 +161,39 @@ export function verifyOAuthState(event: H3Event, state: string) {
   return Boolean(expected && state && expected === state)
 }
 
+// Only allow same-origin redirects (paths), never external URLs. Requires a single leading slash
+// not followed by another slash or a backslash — both "//evil.com" and "/\evil.com" are treated as
+// protocol-relative (→ external) by some browsers, so they are rejected.
+export function safeInternalPath(path: unknown, fallback = "/home") {
+  if (typeof path !== "string" || !/^\/(?![/\\])/.test(path)) {
+    return fallback
+  }
+  return path
+}
+
+// The OAuth `state` carries both the CSRF token and the intended redirect, so the callback can
+// return the user to where they started. The CSRF token (base64url, no ".") stays comparable to
+// the cookie; the redirect is appended after a "." as base64url.
+export function encodeOAuthState(csrf: string, redirect: string) {
+  return csrf + "." + Buffer.from(redirect, "utf8").toString("base64url")
+}
+
+export function decodeOAuthState(state: string): { csrf: string, redirect: string } {
+  const dot = state.indexOf(".")
+  if (dot === -1) {
+    return { csrf: state, redirect: "/home" }
+  }
+
+  let redirect = "/home"
+  try {
+    redirect = Buffer.from(state.slice(dot + 1), "base64url").toString("utf8")
+  } catch {
+    redirect = "/home"
+  }
+
+  return { csrf: state.slice(0, dot), redirect }
+}
+
 export function getGoogleRedirectUri(event: H3Event) {
   if (process.env.GOOGLE_REDIRECT_URI) {
     return process.env.GOOGLE_REDIRECT_URI
